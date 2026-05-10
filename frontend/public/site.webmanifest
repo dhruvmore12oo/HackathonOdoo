@@ -1,0 +1,27 @@
+{
+  "name": "Traveloop — Personalized Travel Planning",
+  "short_name": "Traveloop",
+  "description": "Plan, explore, and experience your perfect trip with AI-powered itineraries and real-time collaboration.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F0F7F5",
+  "theme_color": "#1A6B5A",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}

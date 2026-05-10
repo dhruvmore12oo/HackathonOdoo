@@ -1,0 +1,81 @@
+Here is the full word-for-word transcription and a record of all visual text elements from the video.
+
+Video Transcription
+[00:00 - 00:09]
+Speaker: "Hello and welcome to Odoo Hackathon. We are really excited to hire some exceptionally talented developers through this hiring hackathon. We are eager to see what you build."
+(On-screen Text: Welcome to the Odoo Hiring Hackathon)
+
+[00:10 - 00:18]
+Speaker: "This hackathon isn't about coding fast. It's about approaching the chosen problem statement thoughtfully and then designing scalable, well-structured, and clean code."
+(On-screen Text: Thoughtfully, Well structured, Clean Code)
+
+[00:19 - 00:29]
+Speaker: "This is also a chance for you guys to showcase your development skills and logic, because we are always on a lookout for talented developers who can join our team. So let us understand what are we looking for."
+
+[00:30 - 00:36]
+Speaker: "We are looking for someone with solid technical skills, logical thinking, and someone who can work on real-world and dynamic projects."
+(On-screen Text: Solid Technical Skills, Logical Thinking, Real world Projects, Dynamic Projects)
+
+[00:37 - 00:53]
+Speaker: "Things that matter to us the most are: Database design and setup. We really value projects that model data well, design backend APIs, and use local databases like MySQL and PostgreSQL, instead of relying on Backend-as-a-Service platforms like Firebase, Supabase, and MongoDB Atlas."
+(On-screen Text: Database Design, MySQL, PostgreSQL, Firebase, Supabase, MongoDB Atlas)
+
+[00:54 - 01:05]
+Speaker: "Try to create your project from scratch with minimal use of third-party APIs. This approach will help you to avoid dependencies that can impact your project when the third-party platform has bugs and issues."
+(On-screen Text: Minimal Use of Third Party APIs)
+
+[01:06 - 01:11]
+Speaker: "Use of real-time and dynamic data. Static JSON for quick prototyping is fine, but not for the final solution."
+(On-screen Text: Use of real-time Dynamic data, Not for the Final solution)
+
+[01:12 - 01:23]
+Speaker: "Robust input validation. User errors must be handled gracefully. For example, if a user enters an invalid email, then they must receive a feedback that the entered email is invalid."
+(On-screen Text: Robust input Validation)
+
+[01:24 - 01:29]
+Speaker: "Proper use of Git. One member managing the GitHub repo isn't enough. Version control is a team sport."
+(On-screen Text: Proper use of Git)
+
+[01:30 - 01:39]
+Speaker: "Interactive and clean UI. See, user interface is the face of your projects, so try to create clean and interactive UI with consistent color schemes and layout."
+(On-screen Text: Clean and Responsive UI)
+
+[01:40 - 01:45]
+Speaker: "Intuitive navigation. Menus that make sense with proper spacing and flow."
+(On-screen Text: Intuitive Navigation)
+
+[01:46 - 01:53]
+Speaker: "And when it comes to presenting your project, everyone should participate. Because it's not about who speaks well, it's about shared ownership and teamwork."
+
+[01:54 - 02:07]
+Speaker: "Using trendy tech like AI, Blockchain, or Chatbots—that's great, if they genuinely add value to your solution. Understand the tools you use. Don't just copy and paste code; understand why they are used and what do they do."
+(On-screen Text: Blockchain, AI, Chatbot)
+
+[02:08 - 02:21]
+Speaker: "Here's how we'll be evaluating your work: Coding standards, logic, modularity, frontend design, performance, scalability, security, usability, debugging skill, and most importantly, database design."
+(On-screen Text: Coding Standards, Logic, Modularity, Frontend Design, Performance, Scalability, Security, Usability, Debugging Skill, Database Design)
+
+[02:22 - 02:28]
+Speaker: "We'll also be looking at your approach to the problem statement, modular architecture, coding pattern, and your attention to detail."
+
+[02:29 - 02:40]
+Speaker: "Remember we are here to hire good developers, so try to impress your reviewers with good technical skills. So go ahead, choose the problem statement and bring it to life with your amazing ideas."
+(On-screen Text: Hire good Developers, Technical Skills)
+
+[02:41 - 02:48]
+Speaker: "Collaborate, innovate, and most importantly, enjoy the process. We can't wait to see what you guys create. Happy hacking!"
+(On-screen Text: Collaborate, Innovate, Enjoy the Process)
+
+[02:49 - 02:54]
+(Visual: Odoo logo animation)
+
+Summary of Technical Requirements (Extracted from Video)
+Preferred Databases: MySQL, PostgreSQL.
+
+Banned/Discouraged (for final solution): Firebase, Supabase, MongoDB Atlas, Static JSON.
+
+Key Coding Standards: Scalability, Modular Architecture, Clean Code, Robust Input Validation.
+
+Presentation Rule: Full team participation is mandatory.
+
+Evaluation Focus: Database design is the highest priority.
