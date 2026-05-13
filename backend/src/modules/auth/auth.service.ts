@@ -4,7 +4,11 @@ import { generateTokens, verifyRefreshToken, generateRandomToken, hashToken } fr
 import { AuthTokens, TokenPayload, UserPublic, UUID, User } from '../../types';
 import * as authRepo from './auth.repository';
 import { RegisterInput, LoginInput } from './auth.schema';
+import { env } from '../../config/env';
+import { OAuth2Client } from 'google-auth-library';
 import { logger } from '../../config/logger';
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 function sanitizeUser(user: User): UserPublic {
   const { password_hash, ...publicUser } = user;
@@ -51,6 +55,12 @@ export async function login(
     throw new InvalidCredentialsError();
   }
 
+  if (!user.password_hash) {
+    // User signed up with OAuth, no password exists
+    logger.warn('Login attempt without password for OAuth user', { email: data.email, ip: meta?.ip });
+    throw new InvalidCredentialsError();
+  }
+
   const valid = await comparePassword(data.password, user.password_hash);
   if (!valid) {
     logger.warn('Failed login attempt', { email: data.email, ip: meta?.ip });
@@ -70,6 +80,60 @@ export async function login(
 
   await authRepo.updateLastLogin(user.id);
   logger.info('User logged in', { userId: user.id });
+  return { user: sanitizeUser(user), tokens };
+}
+
+export async function googleLogin(idToken: string, meta?: { ip?: string; userAgent?: string }): Promise<{ user: UserPublic; tokens: AuthTokens }> {
+  if (!env.GOOGLE_CLIENT_ID) {
+    throw new BadRequestError('Google login is not configured on the server');
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken,
+    audience: env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload || !payload.email) {
+    throw new BadRequestError('Invalid Google token');
+  }
+
+  const { email, given_name, family_name, picture, sub } = payload;
+  
+  let user = await authRepo.findUserByEmail(email);
+
+  if (user) {
+    // If user exists but is not linked to Google, link it
+    if (user.auth_provider !== 'google' || !user.provider_id) {
+      await authRepo.linkOAuthProvider(user.id, 'google', sub, picture);
+      const updatedUser = await authRepo.findUserById(user.id);
+      if (updatedUser) user = updatedUser;
+    }
+  } else {
+    // Register new user
+    user = await authRepo.createUser({
+      first_name: given_name || 'User',
+      last_name: family_name || '',
+      email: email,
+      auth_provider: 'google',
+      provider_id: sub,
+      profile_photo_url: picture,
+    });
+  }
+
+  const tokenPayload: TokenPayload = { userId: user.id, email: user.email, role: user.role };
+  const tokens = generateTokens(tokenPayload);
+
+  await authRepo.storeRefreshToken({
+    user_id: user.id,
+    token_hash: hashToken(tokens.refreshToken),
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    ip_address: meta?.ip,
+    user_agent: meta?.userAgent,
+  });
+
+  await authRepo.updateLastLogin(user.id);
+  logger.info('User logged in with Google', { userId: user.id });
   return { user: sanitizeUser(user), tokens };
 }
 

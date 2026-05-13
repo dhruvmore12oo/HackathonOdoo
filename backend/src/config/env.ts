@@ -21,6 +21,9 @@ const envSchema = z.object({
   BCRYPT_SALT_ROUNDS: z.coerce.number().min(10).max(15).default(12),
   CORS_ORIGIN: z.string().default('http://localhost:3000,http://localhost:3001'),
 
+  // OAuth
+  GOOGLE_CLIENT_ID: z.string().optional(),
+
   // File Uploads
   MAX_FILE_SIZE_MB: z.coerce.number().default(5),
   UPLOAD_DIR: z.string().default('./uploads'),

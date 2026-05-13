@@ -32,6 +32,29 @@ export function useLogin() {
   });
 }
 
+export function useGoogleLoginAuth() {
+  const { setUser } = useAuthStore();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (idToken: string) => {
+      const res = await api.post<ApiResponse<{ user: AuthResponse['user']; accessToken: string }>>(
+        '/auth/google',
+        { idToken }
+      );
+      return res.data.data;
+    },
+    onSuccess: (data) => {
+      setUser(data.user, data.accessToken);
+      toast.success('Successfully logged in with Google!');
+      router.push(ROUTES.DASHBOARD);
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 export function useRegister() {
   const { setUser } = useAuthStore();
   const router = useRouter();
