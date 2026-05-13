@@ -27,10 +27,13 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/site.webmanifest',
-  themeColor: '#1A6B5A',
   other: {
     'msapplication-TileColor': '#1A6B5A',
   },
+};
+
+export const viewport = {
+  themeColor: '#1A6B5A',
 };
 
 export default function RootLayout({
