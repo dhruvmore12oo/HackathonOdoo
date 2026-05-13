@@ -8,7 +8,9 @@ import { Mail, User as UserIcon } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { GuestGuard } from '@/components/auth/GuestGuard';
-import { useRegister } from '@/hooks/useAuth';
+import { useRegister, useGoogleLoginAuth } from '@/hooks/useAuth';
+import { GoogleLogin } from '@react-oauth/google';
+import toast from 'react-hot-toast';
 
 const registerSchema = z.object({
   first_name: z.string().min(1, 'First name is required').max(80),
@@ -30,6 +32,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const { mutate: registerUser, isPending } = useRegister();
+  const { mutate: googleLogin, isPending: isGooglePending } = useGoogleLoginAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: { first_name: '', last_name: '', email: '', password: '', confirm_password: '' },
@@ -101,11 +104,37 @@ export default function RegisterPage() {
             type="submit"
             className="w-full"
             size="lg"
-            isLoading={isPending}
+            isLoading={isPending || isGooglePending}
             id="register-submit"
           >
             Create Account
           </Button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-background px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center w-full [&>div]:w-full">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                if (credentialResponse.credential) {
+                  googleLogin(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                toast.error('Failed to authenticate with Google');
+              }}
+              theme="outline"
+              size="large"
+              text="signup_with"
+              width="100%"
+            />
+          </div>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">

@@ -34,6 +34,18 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   }, 'Login successful');
 });
 
+export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.googleLogin(req.body.idToken, {
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+  res.cookie('refreshToken', result.tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+  sendSuccess(res, {
+    user: result.user,
+    accessToken: result.tokens.accessToken,
+  }, 'Google login successful');
+});
+
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 

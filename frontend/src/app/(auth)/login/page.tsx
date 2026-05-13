@@ -8,7 +8,9 @@ import { Mail } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { GuestGuard } from '@/components/auth/GuestGuard';
-import { useLogin } from '@/hooks/useAuth';
+import { useLogin, useGoogleLoginAuth } from '@/hooks/useAuth';
+import { GoogleLogin } from '@react-oauth/google';
+import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -18,6 +20,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { mutate: login, isPending } = useLogin();
+  const { mutate: googleLogin, isPending: isGooglePending } = useGoogleLoginAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -68,11 +71,36 @@ export default function LoginPage() {
             type="submit"
             className="w-full"
             size="lg"
-            isLoading={isPending}
+            isLoading={isPending || isGooglePending}
             id="login-submit"
           >
             Sign In
           </Button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-background px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center w-full [&>div]:w-full">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                if (credentialResponse.credential) {
+                  googleLogin(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                toast.error('Failed to authenticate with Google');
+              }}
+              theme="outline"
+              size="large"
+              width="100%"
+            />
+          </div>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">

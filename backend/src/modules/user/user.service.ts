@@ -29,6 +29,10 @@ export async function changePassword(
   const user = await userRepo.findById(userId);
   if (!user) throw new NotFoundError('User');
 
+  if (!user.password_hash) {
+    throw new BadRequestError('OAuth users cannot change password using this method');
+  }
+
   const valid = await comparePassword(currentPassword, user.password_hash);
   if (!valid) throw new BadRequestError('Current password is incorrect');
 
@@ -41,6 +45,10 @@ export async function changePassword(
 export async function deleteAccount(userId: UUID, password: string): Promise<void> {
   const user = await userRepo.findById(userId);
   if (!user) throw new NotFoundError('User');
+
+  if (!user.password_hash) {
+    throw new BadRequestError('OAuth users cannot delete account using this method');
+  }
 
   const valid = await comparePassword(password, user.password_hash);
   if (!valid) throw new BadRequestError('Password is incorrect');

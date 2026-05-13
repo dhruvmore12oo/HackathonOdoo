@@ -18,18 +18,39 @@ export async function createUser(data: {
   first_name: string;
   last_name: string;
   email: string;
-  password_hash: string;
+  password_hash?: string | null;
   phone?: string | null;
   city?: string;
   country?: string;
+  auth_provider?: 'local' | 'google';
+  provider_id?: string | null;
+  profile_photo_url?: string | null;
 }): Promise<User> {
   const result = await queryOne<User>(
-    `INSERT INTO users (first_name, last_name, email, password_hash, phone, city, country)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO users (first_name, last_name, email, password_hash, phone, city, country, auth_provider, provider_id, profile_photo_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
-    [data.first_name, data.last_name, data.email.toLowerCase(), data.password_hash, data.phone || null, data.city || null, data.country || null]
+    [
+      data.first_name, 
+      data.last_name, 
+      data.email.toLowerCase(), 
+      data.password_hash || null, 
+      data.phone || null, 
+      data.city || null, 
+      data.country || null,
+      data.auth_provider || 'local',
+      data.provider_id || null,
+      data.profile_photo_url || null
+    ]
   );
   return result!;
+}
+
+export async function linkOAuthProvider(userId: UUID, auth_provider: string, provider_id: string, profile_photo_url?: string | null): Promise<void> {
+  await query(
+    'UPDATE users SET auth_provider = $1, provider_id = $2, profile_photo_url = COALESCE(profile_photo_url, $3), updated_at = NOW() WHERE id = $4',
+    [auth_provider, provider_id, profile_photo_url || null, userId]
+  );
 }
 
 export async function updateLastLogin(userId: UUID): Promise<void> {

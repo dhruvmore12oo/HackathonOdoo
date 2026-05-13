@@ -12,7 +12,9 @@ export interface User {
   last_name: string;
   email: string;
   phone: string | null;
-  password_hash: string;
+  password_hash: string | null;
+  auth_provider: 'local' | 'google';
+  provider_id: string | null;
   city: string | null;
   country: string | null;
   profile_photo_url: string | null;

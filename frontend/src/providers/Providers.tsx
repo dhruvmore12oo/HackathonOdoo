@@ -6,6 +6,8 @@ import { Toaster } from 'react-hot-toast';
 import { createQueryClient } from '@/lib/queryClient';
 import { useSocketConnection, useRealtimeNotifications } from '@/lib/socket';
 
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 function SocketProvider({ children }: { children: React.ReactNode }) {
   useSocketConnection();
   useRealtimeNotifications();
@@ -16,8 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => createQueryClient());
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SocketProvider>{children}</SocketProvider>
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>{children}</SocketProvider>
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -37,6 +40,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
