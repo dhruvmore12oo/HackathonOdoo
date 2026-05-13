@@ -21,6 +21,7 @@ export function validate(schema: ZodSchema, target: ValidationTarget = 'body') {
           field: e.path.join('.'),
           message: e.message,
         }));
+        console.error(`[VALIDATE] target=${target}, input=`, JSON.stringify(req[target]), 'errors=', JSON.stringify(details));
         next(new ValidationError(details));
       } else {
         next(error);

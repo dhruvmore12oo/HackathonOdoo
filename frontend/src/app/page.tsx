@@ -1,12 +1,20 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <div className="text-center max-w-xl animate-in">
-        <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-gray-900 mb-4">
-          Travel<span className="text-brand-500">oop</span>
-        </h1>
+      <div className="text-center max-w-3xl animate-in w-full">
+        <div className="flex justify-center mb-10 w-full px-2">
+          <Image 
+            src="/logo.png" 
+            alt="Traveloop Logo" 
+            width={800} 
+            height={320} 
+            className="w-full max-w-md sm:max-w-lg lg:max-w-2xl h-auto object-contain"
+            priority
+          />
+        </div>
         <p className="text-lg text-gray-600 mb-8 font-body">
           Personalized travel planning made easy. Design, organize, and share
           multi-city itineraries with intelligent budget estimation.

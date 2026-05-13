@@ -31,9 +31,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Top Nav */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
-        <div className="container-page flex items-center justify-between h-14">
+        <div className="container-page flex items-center justify-between h-16">
           <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Traveloop" width={130} height={36} className="h-9 w-auto object-contain" priority />
+            <Image src="/logo.png" alt="Traveloop" width={200} height={56} className="h-12 w-auto object-contain" priority />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => (

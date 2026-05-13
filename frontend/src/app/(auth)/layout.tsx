@@ -20,7 +20,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <div className="relative z-10 text-white text-center px-12">
           <div className="flex justify-center mb-6">
-            <Image src="/logo.png" alt="Traveloop" width={220} height={80} className="h-20 w-auto object-contain drop-shadow-xl brightness-0 invert" priority />
+            <div className="bg-white/95 rounded-2xl px-6 py-4 shadow-2xl backdrop-blur-sm">
+              <Image src="/logo.png" alt="Traveloop" width={400} height={160} className="h-28 w-auto object-contain" priority />
+            </div>
           </div>
           <p className="text-white/80 text-lg leading-relaxed max-w-md">
             Plan your perfect journey. Organize multi-city itineraries,

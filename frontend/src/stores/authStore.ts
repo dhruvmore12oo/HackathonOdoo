@@ -66,15 +66,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         isHydrated: true,
       });
-    } catch {
-      // No valid session — that's fine
-      clearApiToken();
-      set({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        isHydrated: true,
-      });
+    } catch (err: unknown) {
+      // Distinguish between network errors (backend down) and auth failures
+      const isNetworkError =
+        axios.isAxiosError(err) &&
+        (!err.response || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED');
+
+      if (isNetworkError) {
+        // Backend is unreachable — don't clear existing auth state.
+        // Just mark as hydrated so the UI isn't stuck loading forever.
+        set({
+          isLoading: false,
+          isHydrated: true,
+        });
+      } else {
+        // Genuine auth failure (401, 403, etc.) — clear session
+        clearApiToken();
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isHydrated: true,
+        });
+      }
     }
   },
 
