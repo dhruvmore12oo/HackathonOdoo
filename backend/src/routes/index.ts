@@ -8,6 +8,7 @@ import expenseRoutes from '../modules/expense/expense.routes';
 import shareRoutes from '../modules/share/share.routes';
 import notificationRoutes from '../modules/notification/notification.routes';
 import aiRoutes from '../modules/ai/ai.routes';
+import searchRoutes from '../modules/search/search.routes';
 
 const router = Router();
 
@@ -39,5 +40,8 @@ router.use('/notifications', notificationRoutes);
 
 // AI routes
 router.use('/ai', aiRoutes);
+
+// Search routes
+router.use('/search', searchRoutes);
 
 export default router;

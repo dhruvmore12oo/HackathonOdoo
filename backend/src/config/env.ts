@@ -24,6 +24,15 @@ const envSchema = z.object({
   // OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
 
+  // GeoDB Cities API (RapidAPI)
+  GEODB_API_KEY: z.string().default(''),
+  GEODB_BASE_URL: z.string().default('https://wft-geo-db.p.rapidapi.com/v1/geo'),
+  GEODB_HOST: z.string().default('wft-geo-db.p.rapidapi.com'),
+
+  // Unsplash API
+  UNSPLASH_ACCESS_KEY: z.string().default(''),
+  UNSPLASH_BASE_URL: z.string().default('https://api.unsplash.com'),
+
   // File Uploads
   MAX_FILE_SIZE_MB: z.coerce.number().default(5),
   UPLOAD_DIR: z.string().default('./uploads'),

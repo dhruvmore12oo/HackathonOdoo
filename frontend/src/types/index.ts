@@ -366,3 +366,21 @@ export interface PublicActivity {
   estimated_cost: number;
   status: string;
 }
+
+// ── Search ──
+export interface SearchCityResult {
+  id: string;
+  name: string;
+  country: string;
+  countryCode: string;
+  region?: string;
+  latitude: number;
+  longitude: number;
+  population?: number;
+  heroImage: string;
+  thumbnailImage: string;
+}
+
+export interface TrendingCity extends SearchCityResult {
+  searchCount: number;
+}

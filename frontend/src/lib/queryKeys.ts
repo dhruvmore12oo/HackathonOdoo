@@ -44,4 +44,11 @@ export const queryKeys = {
     list: (page: number) => ['notifications', page] as const,
     unread: ['notifications', 'unread'] as const,
   },
+
+  // Search
+  search: {
+    cities: (q: string, country?: string) => ['search', 'cities', q, country] as const,
+    trending: ['search', 'trending'] as const,
+    recent: ['search', 'recent'] as const,
+  },
 } as const;

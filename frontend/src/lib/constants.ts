@@ -42,6 +42,10 @@ export const API_ENDPOINTS = {
   SHARE: '/share',
   ADMIN: '/admin/stats',
   HEALTH: '/health',
+  SEARCH: {
+    CITIES: '/search/cities',
+    TRENDING: '/search/trending',
+  },
 } as const;
 
 export const PACKING_CATEGORIES = [
