@@ -9,7 +9,7 @@ import { ROUTES } from '@/lib/constants';
 import { getAssetUrl } from '@/lib/utils';
 import type { PublicTripData } from '@/types';
 
-function TripCard({ trip }: { trip: PublicTripData & { share_slug?: string } }) {
+function TripCard({ trip }: { trip: PublicTripData }) {
   const dayCount = Math.ceil(
     (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / 86400000
   ) + 1;
@@ -82,7 +82,7 @@ export default function CommunityPage() {
     }, 400);
   };
 
-  const trips = (data?.data ?? []) as (PublicTripData & { share_slug?: string })[];
+  const trips = (data?.data ?? []) as PublicTripData[];
   const pagination = data?.pagination;
 
   return (

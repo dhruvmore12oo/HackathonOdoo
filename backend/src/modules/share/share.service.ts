@@ -53,17 +53,25 @@ export async function getPublicTrip(
 ): Promise<PublicTripData> {
   const link = await repo.getShareLinkBySlug(slug);
   if (!link) throw new NotFoundError('Share link');
-  if (link.expires_at && link.expires_at < new Date()) {
+
+  // Fetch the trip first to check its visibility
+  const trip = await repo.getPublicTripBySlug(slug);
+  if (!trip) throw new NotFoundError('Trip');
+
+  // Only enforce expiry for non-public trips — public trips are always viewable
+  const isPublicTrip = await import('../../lib/db').then(db =>
+    db.queryOne<{ visibility: string }>('SELECT visibility FROM trips WHERE id = $1', [link.trip_id])
+  );
+  const tripIsPublic = isPublicTrip?.visibility === 'public';
+
+  if (!tripIsPublic && link.expires_at && link.expires_at < new Date()) {
     throw new ForbiddenError('This share link has expired');
   }
-  if (link.password_hash) {
+  if (link.password_hash && !tripIsPublic) {
     if (!password || !repo.verifySharePassword(link.password_hash, password)) {
       throw new ForbiddenError('Invalid password');
     }
   }
-
-  const trip = await repo.getPublicTripBySlug(slug);
-  if (!trip) throw new NotFoundError('Trip');
 
   // Record view (fire-and-forget)
   repo.recordView(trip.id, viewerId ?? null, ipHash ?? null, userAgent ?? null).catch(() => {});

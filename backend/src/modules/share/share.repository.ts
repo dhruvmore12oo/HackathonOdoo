@@ -180,7 +180,6 @@ export async function getActivityFeed(tripId: UUID, limit = 20): Promise<Activit
 export async function getPublicTripBySlug(slug: string): Promise<PublicTripData | null> {
   const link = await getShareLinkBySlug(slug);
   if (!link) return null;
-  if (link.expires_at && link.expires_at < new Date()) return null;
 
   const trip = await queryOne<{
     id: UUID; title: string;
@@ -289,6 +288,7 @@ export async function getPublicTrips(
     id: r.id, title: r.title, destination_summary: r.destination_summary,
     cover_photo_url: r.cover_photo_url, start_date: r.start_date, end_date: r.end_date,
     tags: r.tags || [], status: r.status, view_count: r.view_count, share_count: r.share_count,
+    share_slug: r.share_slug,
     description: null, sections: [],
     owner: { first_name: r.first_name, last_name: r.last_name, avatar_url: r.avatar_url },
   }));

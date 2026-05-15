@@ -60,6 +60,7 @@ export interface PublicTripData {
   status: string;
   view_count: number;
   share_count: number;
+  share_slug?: string | null;
   sections: PublicSection[];
   owner: { first_name: string; last_name: string; avatar_url: string | null };
 }
