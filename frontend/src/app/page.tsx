@@ -7,7 +7,7 @@ export default function HomePage() {
       <div className="text-center max-w-3xl animate-in w-full">
         <div className="flex justify-center mb-10 w-full px-2">
           <Image 
-            src="/logo.png" 
+            src="/logo-full.png" 
             alt="Traveloop Logo" 
             width={800} 
             height={320} 
