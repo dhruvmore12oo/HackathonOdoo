@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent, Spinner } from '@/components/ui';
 import { useTrip, useUpdateTrip } from '@/hooks/useTrips';
 import { ROUTES } from '@/lib/constants';
+import { canEditTrip, getTripRole } from '@/lib/permissions';
 
 const editTripSchema = z.object({
   title: z.string().min(3).max(200).optional(),
@@ -52,6 +53,30 @@ export default function EditTripPage() {
 
   if (isLoading) return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
   if (!trip) return null;
+
+  const canEdit = canEditTrip(getTripRole(trip));
+
+  if (!canEdit) {
+    return (
+      <div className="animate-in max-w-2xl mx-auto">
+        <Link href={ROUTES.TRIP(id)} className="text-sm text-link inline-flex items-center gap-1 mb-4">
+          <ArrowLeft className="h-4 w-4" /> Back to trip
+        </Link>
+
+        <Card>
+          <CardHeader><CardTitle>Read-only access</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-500">
+              You can view this trip, but only the owner or an editor can change trip details.
+            </p>
+            <Link href={ROUTES.TRIP(id)}>
+              <Button type="button">Back to Trip</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const onSubmit = (data: FormData) => {
     // Build a clean payload — only send fields that have meaningful values

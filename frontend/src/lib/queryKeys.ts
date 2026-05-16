@@ -36,6 +36,7 @@ export const queryKeys = {
     feed: (tripId: string) => ['share', 'feed', tripId] as const,
     public: (slug: string) => ['share', 'public', slug] as const,
     community: (filters?: object) => ['community', filters] as const,
+    invitations: ['share', 'invitations'] as const,
   },
 
   // Notifications

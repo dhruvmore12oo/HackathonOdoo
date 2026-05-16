@@ -2,6 +2,7 @@ import { UUID } from '../../types';
 import { NotFoundError } from '../../errors';
 import { logger } from '../../config/logger';
 import { assertTripOwnership } from './trip.permissions';
+import { assertTripAccess } from '../share/share.permissions';
 import * as tripRepo from './trip.repository';
 import { CreateTripInput, UpdateTripInput, TripListQuery } from './trip.schema';
 
@@ -12,15 +13,15 @@ export async function createTrip(userId: UUID, data: CreateTripInput) {
 }
 
 export async function updateTrip(userId: UUID, tripId: UUID, data: UpdateTripInput) {
-  await assertTripOwnership(tripId, userId);
+  const role = await assertTripAccess(tripId, userId, 'canEdit');
   const trip = await tripRepo.updateTrip(tripId, data);
   logger.info('Trip updated', { userId, tripId });
-  return trip;
+  return { ...trip, current_user_role: role };
 }
 
 export async function getTrip(userId: UUID, tripId: UUID) {
-  await assertTripOwnership(tripId, userId);
-  const trip = await tripRepo.findById(tripId);
+  await assertTripAccess(tripId, userId, 'canView');
+  const trip = await tripRepo.findAccessibleById(tripId, userId);
   if (!trip) throw new NotFoundError('Trip');
   return trip;
 }
@@ -60,11 +61,11 @@ export async function duplicateTrip(userId: UUID, tripId: UUID) {
 }
 
 export async function uploadCover(userId: UUID, tripId: UUID, filename: string) {
-  await assertTripOwnership(tripId, userId);
+  const role = await assertTripAccess(tripId, userId, 'canEdit');
   const coverUrl = `/uploads/${filename}`;
   const trip = await tripRepo.updateCoverImage(tripId, coverUrl);
   logger.info('Trip cover updated', { userId, tripId });
-  return trip;
+  return { ...trip, current_user_role: role };
 }
 
 export async function getStats(userId: UUID) {

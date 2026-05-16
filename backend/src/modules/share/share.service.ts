@@ -2,7 +2,7 @@ import { UUID } from '../../types';
 import { logger } from '../../config/logger';
 import { NotFoundError, ForbiddenError } from '../../errors';
 import * as repo from './share.repository';
-import { assertTripOwner, assertTripAccess } from './share.permissions';
+import { assertTripAccess } from './share.permissions';
 import {
   CreateShareLinkInput, InviteCollaboratorInput, UpdateCollaboratorInput, PublicTripsQuery,
 } from './share.schema';
@@ -16,7 +16,7 @@ import {
 export async function createShareLink(
   userId: UUID, tripId: UUID, data: CreateShareLinkInput
 ): Promise<ShareLinkRow> {
-  await assertTripOwner(tripId, userId);
+  await assertTripAccess(tripId, userId, 'canManageShare');
   const link = await repo.createShareLink(tripId, userId, data);
   await repo.logActivity(tripId, userId, FEED_ACTIONS.TRIP_SHARED, { slug: link.slug });
   logger.info('Share link created', { userId, tripId, slug: link.slug });
@@ -24,21 +24,24 @@ export async function createShareLink(
 }
 
 export async function revokeShareLink(userId: UUID, linkId: UUID): Promise<void> {
-  const link = await repo.getShareLinksByTrip(linkId).then(() => null).catch(() => null);
-  void link;
-  logger.info('Share link revoked', { userId, linkId });
+  const link = await repo.getShareLinkById(linkId);
+  if (!link) throw new NotFoundError('Share link');
+  await assertTripAccess(link.trip_id, userId, 'canManageShare');
   await repo.revokeShareLink(linkId);
+  logger.info('Share link revoked', { userId, linkId, tripId: link.trip_id });
 }
 
 export async function regenerateShareLink(
-  userId: UUID, linkId: UUID, tripId: UUID
+  userId: UUID, linkId: UUID
 ): Promise<ShareLinkRow> {
-  await assertTripOwner(tripId, userId);
-  return repo.regenerateShareLink(linkId, tripId);
+  const link = await repo.getShareLinkById(linkId);
+  if (!link) throw new NotFoundError('Share link');
+  await assertTripAccess(link.trip_id, userId, 'canManageShare');
+  return repo.regenerateShareLink(linkId, link.trip_id);
 }
 
 export async function getShareLinks(userId: UUID, tripId: UUID): Promise<ShareLinkRow[]> {
-  await assertTripOwner(tripId, userId);
+  await assertTripAccess(tripId, userId, 'canManageShare');
   return repo.getShareLinksByTrip(tripId);
 }
 
@@ -84,7 +87,7 @@ export async function getPublicTrip(
 export async function inviteCollaborator(
   userId: UUID, tripId: UUID, data: InviteCollaboratorInput
 ): Promise<CollaboratorRow> {
-  await assertTripOwner(tripId, userId);
+  await assertTripAccess(tripId, userId, 'canManageCollaborators');
 
   // Resolve email to user_id
   const targetUser = await import('../../lib/db').then(db =>
@@ -109,35 +112,50 @@ export async function acceptInvitation(userId: UUID, tripId: UUID): Promise<Coll
 }
 
 export async function updateCollaborator(
-  userId: UUID, tripId: UUID, collaboratorId: UUID, data: UpdateCollaboratorInput
+  userId: UUID, collaboratorId: UUID, data: UpdateCollaboratorInput
 ): Promise<CollaboratorRow> {
-  await assertTripOwner(tripId, userId);
+  const collab = await repo.getCollaboratorById(collaboratorId);
+  if (!collab) throw new NotFoundError('Collaborator');
+  await assertTripAccess(collab.trip_id, userId, 'canManageCollaborators');
   const updated = await repo.updateCollaboratorRole(collaboratorId, data.role);
   if (!updated) throw new NotFoundError('Collaborator');
-  await repo.logActivity(tripId, userId, FEED_ACTIONS.COLLABORATOR_ROLE_CHANGED, {
+  await repo.logActivity(collab.trip_id, userId, FEED_ACTIONS.COLLABORATOR_ROLE_CHANGED, {
     collaboratorId, newRole: data.role,
   });
   return updated;
 }
 
 export async function removeCollaborator(
-  userId: UUID, tripId: UUID, collaboratorId: UUID
+  userId: UUID, collaboratorId: UUID
 ): Promise<void> {
-  await assertTripOwner(tripId, userId);
+  const collab = await repo.getCollaboratorById(collaboratorId);
+  if (!collab) throw new NotFoundError('Collaborator');
+  await assertTripAccess(collab.trip_id, userId, 'canManageCollaborators');
   await repo.removeCollaborator(collaboratorId);
-  await repo.logActivity(tripId, userId, FEED_ACTIONS.COLLABORATOR_REMOVED, { collaboratorId });
+  await repo.logActivity(collab.trip_id, userId, FEED_ACTIONS.COLLABORATOR_REMOVED, { collaboratorId });
 }
 
 export async function listCollaborators(userId: UUID, tripId: UUID): Promise<CollaboratorRow[]> {
-  await assertTripAccess(tripId, userId, 'canEdit');
+  await assertTripAccess(tripId, userId, 'canView');
   return repo.getCollaboratorsByTrip(tripId);
 }
 
 // ── Activity Feed ──
 
 export async function getActivityFeed(userId: UUID, tripId: UUID): Promise<ActivityFeedRow[]> {
-  await assertTripAccess(tripId, userId, 'canEdit');
+  await assertTripAccess(tripId, userId, 'canView');
   return repo.getActivityFeed(tripId, 30);
+}
+
+// ── My Invitations ──
+
+export async function getMyInvitations(userId: UUID) {
+  return repo.getPendingInvitationsByUser(userId);
+}
+
+export async function declineInvitation(userId: UUID, tripId: UUID): Promise<void> {
+  await repo.declineInvitation(tripId, userId);
+  logger.info('Invitation declined', { userId, tripId });
 }
 
 // ── Community ──

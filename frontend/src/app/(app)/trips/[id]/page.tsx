@@ -14,6 +14,7 @@ import { useTrip, useDeleteTrip, useArchiveTrip, useDuplicateTrip, useUploadCove
 import { useItinerary } from '@/hooks/useItinerary';
 import { useBudgetSummary } from '@/hooks/useExpenses';
 import { ROUTES } from '@/lib/constants';
+import { canEditTrip, canManageTrip, getTripRole } from '@/lib/permissions';
 import { formatDate, formatCurrency, getAssetUrl } from '@/lib/utils';
 import type { SectionType, ItinerarySection, SectionActivity } from '@/types';
 
@@ -61,6 +62,9 @@ export default function TripDetailsPage() {
   if (isLoading) return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
   if (!trip) return null;
 
+  const role = getTripRole(trip);
+  const canEdit = canEditTrip(role);
+  const canManage = canManageTrip(role);
   const daysBetween = Math.ceil((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   // Group itinerary sections by day
@@ -90,19 +94,29 @@ export default function TripDetailsPage() {
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="absolute top-4 right-4 p-2 rounded-lg bg-white/20 backdrop-blur text-white hover:bg-white/30 transition opacity-0 group-hover:opacity-100"
-        >
-          <Camera className="h-5 w-5" />
-        </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCover(f); }} />
+        {canEdit && (
+          <>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="absolute top-4 right-4 p-2 rounded-lg bg-white/20 backdrop-blur text-white hover:bg-white/30 transition opacity-0 group-hover:opacity-100"
+              aria-label="Upload cover image"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCover(f); }} />
+          </>
+        )}
         <div className="absolute bottom-4 left-4 right-4">
           <div className="flex items-center gap-2 mb-1">
             <Badge className={`${STATUS_COLORS[trip.status]} text-xs`}>{trip.status}</Badge>
             <Badge variant="outline" className="text-xs text-white border-white/40 flex items-center gap-1">
               {VISIBILITY_ICONS[trip.visibility]} {trip.visibility}
             </Badge>
+            {role && (
+              <Badge variant="outline" className="text-xs text-white border-white/40 capitalize">
+                {role}
+              </Badge>
+            )}
           </div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-white">
             {trip.title || trip.name}
@@ -115,16 +129,24 @@ export default function TripDetailsPage() {
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2">
-        <Link href={`${ROUTES.TRIP(id)}/edit`}>
-          <Button variant="outline" size="sm" leftIcon={<Edit className="h-3.5 w-3.5" />}>Edit</Button>
-        </Link>
+        {canEdit && (
+          <Link href={`${ROUTES.TRIP(id)}/edit`}>
+            <Button variant="outline" size="sm" leftIcon={<Edit className="h-3.5 w-3.5" />}>Edit</Button>
+          </Link>
+        )}
         <Link href={ROUTES.TRIP_SHARE(id)}>
           <Button variant="outline" size="sm" leftIcon={<Share2 className="h-3.5 w-3.5" />}>Share & Collaborate</Button>
         </Link>
-        <Button variant="outline" size="sm" leftIcon={<Copy className="h-3.5 w-3.5" />} onClick={() => duplicateTrip(id)}>Duplicate</Button>
-        <Button variant="outline" size="sm" leftIcon={<Archive className="h-3.5 w-3.5" />} onClick={() => archiveTrip(id)}>Archive</Button>
+        {canManage && (
+          <>
+            <Button variant="outline" size="sm" leftIcon={<Copy className="h-3.5 w-3.5" />} onClick={() => duplicateTrip(id)}>Duplicate</Button>
+            <Button variant="outline" size="sm" leftIcon={<Archive className="h-3.5 w-3.5" />} onClick={() => archiveTrip(id)}>Archive</Button>
+          </>
+        )}
         <AIAssistantPanel destination={trip?.destination_summary || trip?.name} startDate={trip?.start_date} endDate={trip?.end_date} budget={trip?.total_budget} />
-        <Button variant="danger" size="sm" leftIcon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setShowDelete(true)}>Delete</Button>
+        {canManage && (
+          <Button variant="danger" size="sm" leftIcon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setShowDelete(true)}>Delete</Button>
+        )}
       </div>
 
       {/* Metadata Grid */}
@@ -271,7 +293,7 @@ export default function TripDetailsPage() {
           <div className="pt-2 text-center border-t border-gray-100">
             <Link href={ROUTES.TRIP_ITINERARY(id)}>
               <Button size="sm" leftIcon={<ChevronRight className="h-4 w-4" />}>
-                {itinerary && itinerary.sections.length > 0 ? 'Edit in Itinerary Builder' : 'Open Itinerary Builder'}
+                {canEdit && itinerary && itinerary.sections.length > 0 ? 'Edit in Itinerary Builder' : 'Open Itinerary Builder'}
               </Button>
             </Link>
           </div>
@@ -339,7 +361,7 @@ export default function TripDetailsPage() {
           <div className="pt-2 text-center border-t border-gray-100">
             <Link href={ROUTES.TRIP_EXPENSES(id)}>
               <Button size="sm" leftIcon={<ChevronRight className="h-4 w-4" />}>
-                Manage Budget & Expenses
+                {canEdit ? 'Manage Budget & Expenses' : 'View Budget & Expenses'}
               </Button>
             </Link>
           </div>
@@ -347,7 +369,7 @@ export default function TripDetailsPage() {
       </Card>
 
       {/* Delete Modal */}
-      <Modal isOpen={showDelete} onClose={() => setShowDelete(false)} title="Delete Trip" size="sm">
+      <Modal isOpen={showDelete && canManage} onClose={() => setShowDelete(false)} title="Delete Trip" size="sm">
         <div className="space-y-4">
           <p className="text-sm text-gray-600">This trip will be soft-deleted. You can recover it later.</p>
           <div className="flex gap-2 justify-end">

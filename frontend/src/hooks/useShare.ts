@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { api, publicApi, getErrorMessage } from '@/lib/api';
 import type {
-  ShareLink, Collaborator, ActivityFeedItem, PublicTripData, ApiResponse, PaginatedResponse,
+  ShareLink, Collaborator, CollaboratorRole, ActivityFeedItem, PublicTripData, PendingInvitation, ApiResponse, PaginatedResponse,
 } from '@/types';
+
+type ManagedCollaboratorRole = Exclude<CollaboratorRole, 'owner'>;
 
 export const shareKeys = {
   links: (tripId: string) => ['share', 'links', tripId] as const,
@@ -13,6 +15,7 @@ export const shareKeys = {
   feed: (tripId: string) => ['share', 'feed', tripId] as const,
   public: (slug: string) => ['share', 'public', slug] as const,
   community: (filters?: object) => ['community', filters] as const,
+  invitations: ['share', 'invitations'] as const,
 };
 
 // ── Share Links ──
@@ -71,7 +74,7 @@ export function useCollaborators(tripId: string) {
 export function useInviteCollaborator(tripId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { email: string; role: string }) => {
+    mutationFn: async (data: { email: string; role: ManagedCollaboratorRole }) => {
       const res = await api.post<ApiResponse<Collaborator>>(`/trips/${tripId}/collaborators`, data);
       return res.data.data;
     },
@@ -100,8 +103,8 @@ export function useRemoveCollaborator(tripId: string) {
 export function useUpdateCollaborator(tripId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, role }: { id: string; role: string }) => {
-      const res = await api.patch<ApiResponse<Collaborator>>(`/collaborators/${id}`, { role, tripId });
+    mutationFn: async ({ id, role }: { id: string; role: ManagedCollaboratorRole }) => {
+      const res = await api.patch<ApiResponse<Collaborator>>(`/collaborators/${id}`, { role });
       return res.data.data;
     },
     onSuccess: () => {
@@ -147,5 +150,47 @@ export function useCommunityTrips(filters?: { q?: string; page?: number }) {
       const res = await publicApi.get<PaginatedResponse<PublicTripData>>(`/community/public-trips?${params}`);
       return res.data;
     },
+  });
+}
+
+// ── Invitations ──
+
+export function usePendingInvitations() {
+  return useQuery({
+    queryKey: shareKeys.invitations,
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<PendingInvitation[]>>('/my-invitations');
+      return res.data.data;
+    },
+  });
+}
+
+export function useAcceptInvitation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (tripId: string) => {
+      const res = await api.post<ApiResponse<Collaborator>>(`/trips/${tripId}/collaborators/accept`);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: shareKeys.invitations });
+      qc.invalidateQueries({ queryKey: ['trips'] });
+      toast.success('Invitation accepted! You can now access the trip.');
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+}
+
+export function useDeclineInvitation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (tripId: string) => {
+      await api.post(`/trips/${tripId}/collaborators/decline`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: shareKeys.invitations });
+      toast.success('Invitation declined');
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
   });
 }

@@ -45,6 +45,7 @@ export interface Trip {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+  current_user_role?: CollaboratorRole;
 }
 
 // ── Itinerary Section ──
@@ -310,6 +311,17 @@ export interface Collaborator {
   last_name?: string;
   email?: string;
   avatar_url?: string | null;
+}
+
+export interface PendingInvitation extends Collaborator {
+  trip_title: string;
+  trip_cover_photo_url: string | null;
+  trip_start_date: string;
+  trip_end_date: string;
+  trip_destination_summary: string | null;
+  inviter_first_name: string;
+  inviter_last_name: string;
+  inviter_email: string;
 }
 
 export interface ShareLink {

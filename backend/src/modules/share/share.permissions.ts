@@ -22,7 +22,7 @@ export async function assertTripOwner(tripId: UUID, userId: UUID): Promise<void>
 export async function assertTripAccess(
   tripId: UUID,
   userId: UUID,
-  requiredPermission: 'canEdit' | 'canDelete' | 'canManageCollaborators' | 'canManageShare'
+  requiredPermission: 'canView' | 'canEdit' | 'canDelete' | 'canManageCollaborators' | 'canManageShare'
 ): Promise<CollaboratorRoleType> {
   const trip = await queryOne<{ user_id: UUID; deleted_at: Date | null }>(
     'SELECT user_id, deleted_at FROM trips WHERE id = $1',

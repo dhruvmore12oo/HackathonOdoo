@@ -8,6 +8,7 @@ import { useTrips, useDeleteTrip, useArchiveTrip, useDuplicateTrip } from '@/hoo
 import { useTripStore } from '@/stores/tripStore';
 import { useDebounce } from '@/hooks';
 import { ROUTES } from '@/lib/constants';
+import { canManageTrip, getTripRole } from '@/lib/permissions';
 import { formatDate, formatCurrency, getAssetUrl } from '@/lib/utils';
 import type { Trip } from '@/types';
 
@@ -53,6 +54,8 @@ function TripCard({ trip, onDelete, onArchive, onDuplicate }: {
   onArchive: (id: string) => void;
   onDuplicate: (id: string) => void;
 }) {
+  const role = getTripRole(trip);
+  const canManage = canManageTrip(role);
   const statusColors: Record<string, string> = {
     upcoming: 'bg-blue-100 text-blue-700',
     ongoing: 'bg-green-100 text-green-700',
@@ -78,6 +81,11 @@ function TripCard({ trip, onDelete, onArchive, onDuplicate }: {
               {trip.visibility}
             </Badge>
           )}
+          {role && role !== 'owner' && (
+            <Badge variant="outline" className="absolute bottom-3 right-3 text-xs bg-white/90">
+              {role}
+            </Badge>
+          )}
         </div>
       </Link>
       <CardContent className="pt-3">
@@ -90,11 +98,13 @@ function TripCard({ trip, onDelete, onArchive, onDuplicate }: {
               <p className="text-xs text-muted truncate mt-0.5">{trip.destination_summary}</p>
             )}
           </Link>
-          <ContextMenu
-            onDuplicate={() => onDuplicate(trip.id)}
-            onArchive={() => onArchive(trip.id)}
-            onDelete={() => onDelete(trip.id)}
-          />
+          {canManage && (
+            <ContextMenu
+              onDuplicate={() => onDuplicate(trip.id)}
+              onArchive={() => onArchive(trip.id)}
+              onDelete={() => onDelete(trip.id)}
+            />
+          )}
         </div>
         <div className="flex items-center gap-3 mt-2 text-xs text-muted">
           <span className="flex items-center gap-1">

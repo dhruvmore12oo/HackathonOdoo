@@ -13,8 +13,10 @@ import {
   useItinerary, useCreateSection, useUpdateSection, useDeleteSection,
   useCreateActivity, useUpdateActivity, useDeleteActivity,
 } from '@/hooks/useItinerary';
+import { useTrip } from '@/hooks/useTrips';
 import { useItineraryStore } from '@/stores/itineraryStore';
 import { ROUTES } from '@/lib/constants';
+import { canEditTrip, getTripRole } from '@/lib/permissions';
 import { formatCurrency } from '@/lib/utils';
 import type { ItinerarySection, SectionActivity, SectionType, ActivityStatus } from '@/types';
 
@@ -38,9 +40,10 @@ const STATUS_CONFIG: Record<ActivityStatus, { icon: React.ElementType; color: st
 // ACTIVITY CARD
 // ══════════════════════════════════════
 function ActivityCard({
-  activity, onEdit, onDelete,
+  activity, canEdit, onEdit, onDelete,
 }: {
   activity: SectionActivity;
+  canEdit: boolean;
   onEdit: (a: SectionActivity) => void;
   onDelete: (id: string) => void;
 }) {
@@ -49,9 +52,11 @@ function ActivityCard({
 
   return (
     <div className="group flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-brand-200 hover:shadow-sm transition-all">
-      <div className="mt-0.5 cursor-grab text-gray-300 hover:text-gray-500">
-        <GripVertical className="h-4 w-4" />
-      </div>
+      {canEdit && (
+        <div className="mt-0.5 cursor-grab text-gray-300 hover:text-gray-500">
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
@@ -88,14 +93,16 @@ function ActivityCard({
         )}
       </div>
 
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-        <button onClick={() => onEdit(activity)} className="p-1 rounded hover:bg-gray-100" title="Edit">
-          <Edit3 className="h-3.5 w-3.5 text-gray-400" />
-        </button>
-        <button onClick={() => onDelete(activity.id)} className="p-1 rounded hover:bg-red-50" title="Delete">
-          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+          <button onClick={() => onEdit(activity)} className="p-1 rounded hover:bg-gray-100" title="Edit">
+            <Edit3 className="h-3.5 w-3.5 text-gray-400" />
+          </button>
+          <button onClick={() => onDelete(activity.id)} className="p-1 rounded hover:bg-red-50" title="Delete">
+            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -104,12 +111,13 @@ function ActivityCard({
 // SECTION CARD
 // ══════════════════════════════════════
 function SectionCard({
-  section, isExpanded, onToggle, tripId,
+  section, isExpanded, onToggle, tripId, canEdit,
 }: {
   section: ItinerarySection & { activities: SectionActivity[] };
   isExpanded: boolean;
   onToggle: () => void;
   tripId: string;
+  canEdit: boolean;
 }) {
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [activityName, setActivityName] = useState('');
@@ -124,7 +132,7 @@ function SectionCard({
   const sectionCost = section.activities?.reduce((s, a) => s + Number(a.estimated_cost || 0), 0) || 0;
 
   const handleAddActivity = useCallback(() => {
-    if (!activityName.trim()) return;
+    if (!canEdit || !activityName.trim()) return;
     createActivity(
       { sectionId: section.id, name: activityName.trim() },
       {
@@ -134,13 +142,14 @@ function SectionCard({
         },
       }
     );
-  }, [activityName, createActivity, section.id]);
+  }, [activityName, canEdit, createActivity, section.id]);
 
   const handleStatusToggle = useCallback((activity: SectionActivity) => {
+    if (!canEdit) return;
     const order: ActivityStatus[] = ['planned', 'booked', 'completed', 'skipped'];
     const nextIdx = (order.indexOf(activity.status) + 1) % order.length;
     updateActivity({ id: activity.id, status: order[nextIdx] });
-  }, [updateActivity]);
+  }, [canEdit, updateActivity]);
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
@@ -149,9 +158,11 @@ function SectionCard({
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/50 transition"
         onClick={onToggle}
       >
-        <div className="cursor-grab text-gray-300 hover:text-gray-500" onClick={(e) => e.stopPropagation()}>
-          <GripVertical className="h-4 w-4" />
-        </div>
+        {canEdit && (
+          <div className="cursor-grab text-gray-300 hover:text-gray-500" onClick={(e) => e.stopPropagation()}>
+            <GripVertical className="h-4 w-4" />
+          </div>
+        )}
 
         <div className={`p-1.5 rounded-lg ${typeCfg.color}`}>
           <TypeIcon className="h-4 w-4" />
@@ -169,13 +180,15 @@ function SectionCard({
           {typeCfg.label}
         </Badge>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); deleteSection(section.id); }}
-          className="p-1 rounded hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
-          title="Delete section"
-        >
-          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-        </button>
+        {canEdit && (
+          <button
+            onClick={(e) => { e.stopPropagation(); deleteSection(section.id); }}
+            className="p-1 rounded hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
+            title="Delete section"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+          </button>
+        )}
 
         {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
       </div>
@@ -189,6 +202,7 @@ function SectionCard({
                 <ActivityCard
                   key={activity.id}
                   activity={activity}
+                  canEdit={canEdit}
                   onEdit={(a) => {
                     handleStatusToggle(a);
                     setEditingActivity(a);
@@ -199,12 +213,13 @@ function SectionCard({
             </div>
           ) : (
             <div className="py-6 text-center text-xs text-gray-400">
-              No activities yet — add your first one below
+              {canEdit ? 'No activities yet - add your first one below' : 'No activities yet'}
             </div>
           )}
 
           {/* Quick Add Activity */}
-          {showAddActivity ? (
+          {canEdit && (
+            showAddActivity ? (
             <div className="flex items-center gap-2 pt-2">
               <Input
                 placeholder="Activity name..."
@@ -226,12 +241,13 @@ function SectionCard({
             >
               <Plus className="h-3.5 w-3.5" /> Add Activity
             </button>
+            )
           )}
         </div>
       )}
 
       {/* Activity Edit Modal */}
-      {editingActivity && (
+      {canEdit && editingActivity && (
         <ActivityEditModal
           activity={editingActivity}
           tripId={tripId}
@@ -409,11 +425,12 @@ export default function ItineraryBuilderPage() {
   const params = useParams();
   const tripId = params.id as string;
   const { data: itinerary, isLoading } = useItinerary(tripId);
+  const { data: trip, isLoading: tripLoading } = useTrip(tripId);
   const { expandedSections, toggleSection, activeDayFilter, setDayFilter } = useItineraryStore();
 
   const [addSectionDay, setAddSectionDay] = useState<number | null>(null);
 
-  if (isLoading) {
+  if (isLoading || tripLoading) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size="lg" />
@@ -423,6 +440,7 @@ export default function ItineraryBuilderPage() {
 
   if (!itinerary) return null;
 
+  const canEdit = canEditTrip(getTripRole(trip));
   const { sections, summary } = itinerary;
   const days = Array.from({ length: Math.max(summary.days, 1) }, (_, i) => i + 1);
 
@@ -489,9 +507,11 @@ export default function ItineraryBuilderPage() {
           title="No itinerary yet"
           description="Start building your trip itinerary by adding your first day section."
           action={
-            <Button onClick={() => setAddSectionDay(1)} leftIcon={<Plus className="h-4 w-4" />}>
-              Add First Section
-            </Button>
+            canEdit ? (
+              <Button onClick={() => setAddSectionDay(1)} leftIcon={<Plus className="h-4 w-4" />}>
+                Add First Section
+              </Button>
+            ) : null
           }
         />
       ) : (
@@ -518,14 +538,16 @@ export default function ItineraryBuilderPage() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAddSectionDay(day)}
-                  leftIcon={<Plus className="h-3.5 w-3.5" />}
-                >
-                  Section
-                </Button>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAddSectionDay(day)}
+                    leftIcon={<Plus className="h-3.5 w-3.5" />}
+                  >
+                    Section
+                  </Button>
+                )}
               </div>
 
               {/* Sections */}
@@ -538,6 +560,7 @@ export default function ItineraryBuilderPage() {
                       isExpanded={expandedSections.has(section.id)}
                       onToggle={() => toggleSection(section.id)}
                       tripId={tripId}
+                      canEdit={canEdit}
                     />
                   ))}
                 </div>
@@ -556,7 +579,7 @@ export default function ItineraryBuilderPage() {
       )}
 
       {/* Floating Add Day Button */}
-      {sections.length > 0 && (
+      {canEdit && sections.length > 0 && (
         <div className="flex justify-center pt-4">
           <Button
             variant="outline"
@@ -569,7 +592,7 @@ export default function ItineraryBuilderPage() {
       )}
 
       {/* Add Section Modal */}
-      {addSectionDay !== null && (
+      {canEdit && addSectionDay !== null && (
         <AddSectionModal
           tripId={tripId}
           dayNumber={addSectionDay}

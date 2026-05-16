@@ -6,8 +6,10 @@ import { Button, Card, CardContent, Badge, Spinner } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useTripStats, useTrips } from '@/hooks/useTrips';
 import { ROUTES } from '@/lib/constants';
+import { getTripRole } from '@/lib/permissions';
 import { formatDate, formatCurrency, getAssetUrl } from '@/lib/utils';
 import type { Trip } from '@/types';
+import { InvitationsBanner } from './InvitationsBanner';
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   return (
@@ -26,6 +28,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
 }
 
 function TripMiniCard({ trip }: { trip: Trip }) {
+  const role = getTripRole(trip);
   const statusColors: Record<string, string> = {
     upcoming: 'bg-blue-100 text-blue-700',
     ongoing: 'bg-green-100 text-green-700',
@@ -45,6 +48,11 @@ function TripMiniCard({ trip }: { trip: Trip }) {
           <Badge className={`absolute top-2 right-2 text-xs ${statusColors[trip.status] || ''}`}>
             {trip.status}
           </Badge>
+          {role && role !== 'owner' && (
+            <Badge variant="outline" className="absolute bottom-2 right-2 text-xs bg-white/90">
+              {role}
+            </Badge>
+          )}
         </div>
         <CardContent className="pt-3">
           <h3 className="font-semibold text-gray-900 group-hover:text-brand-600 transition-colors truncate">
@@ -84,6 +92,9 @@ export default function DashboardPage() {
           <Button leftIcon={<Plus className="h-4 w-4" />}>New Trip</Button>
         </Link>
       </div>
+
+      {/* Invitations */}
+      <InvitationsBanner />
 
       {/* Stats */}
       {statsLoading ? (

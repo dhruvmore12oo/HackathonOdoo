@@ -10,7 +10,9 @@ import {
 } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Spinner, Badge, Input, Modal } from '@/components/ui';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useBudgetSummary } from '@/hooks/useExpenses';
+import { useTrip } from '@/hooks/useTrips';
 import { ROUTES } from '@/lib/constants';
+import { canEditTrip, getTripRole } from '@/lib/permissions';
 import { formatCurrency } from '@/lib/utils';
 import type { Expense, ExpenseCategory, ExpenseStatus, BudgetSummary } from '@/types';
 
@@ -125,8 +127,8 @@ function CategoryBreakdownCard({ summary }: { summary: BudgetSummary }) {
 // ══════════════════════════════════════
 // EXPENSE ROW
 // ══════════════════════════════════════
-function ExpenseCard({ expense, onEdit, onDelete }: {
-  expense: Expense; onEdit: (e: Expense) => void; onDelete: (id: string) => void;
+function ExpenseCard({ expense, canEdit, onEdit, onDelete }: {
+  expense: Expense; canEdit: boolean; onEdit: (e: Expense) => void; onDelete: (id: string) => void;
 }) {
   const cfg = CATEGORY_CONFIG[expense.category] || CATEGORY_CONFIG.other;
   const Icon = cfg.icon;
@@ -158,14 +160,16 @@ function ExpenseCard({ expense, onEdit, onDelete }: {
         )}
       </div>
 
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-        <button onClick={() => onEdit(expense)} className="p-1 rounded hover:bg-gray-100">
-          <Edit3 className="h-3.5 w-3.5 text-gray-400" />
-        </button>
-        <button onClick={() => onDelete(expense.id)} className="p-1 rounded hover:bg-red-50">
-          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+          <button onClick={() => onEdit(expense)} className="p-1 rounded hover:bg-gray-100">
+            <Edit3 className="h-3.5 w-3.5 text-gray-400" />
+          </button>
+          <button onClick={() => onDelete(expense.id)} className="p-1 rounded hover:bg-red-50">
+            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -293,15 +297,17 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const { data: expensesData, isLoading } = useExpenses(tripId, categoryFilter ? { category: categoryFilter } : undefined);
   const { data: summary, isLoading: summaryLoading } = useBudgetSummary(tripId);
+  const { data: trip, isLoading: tripLoading } = useTrip(tripId);
   const { mutate: deleteExpense } = useDeleteExpense(tripId);
 
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  if (isLoading || summaryLoading) {
+  if (isLoading || summaryLoading || tripLoading) {
     return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
   }
 
+  const canEdit = canEditTrip(getTripRole(trip));
   const expenses = expensesData?.data || [];
 
   return (
@@ -317,9 +323,11 @@ export default function ExpensesPage() {
             Budget & Expenses
           </h1>
         </div>
-        <Button onClick={() => { setEditingExpense(null); setShowModal(true); }} leftIcon={<Plus className="h-4 w-4" />}>
-          Add Expense
-        </Button>
+        {canEdit && (
+          <Button onClick={() => { setEditingExpense(null); setShowModal(true); }} leftIcon={<Plus className="h-4 w-4" />}>
+            Add Expense
+          </Button>
+        )}
       </div>
 
       {/* Budget Overview */}
@@ -372,6 +380,7 @@ export default function ExpensesPage() {
                 <ExpenseCard
                   key={expense.id}
                   expense={expense}
+                  canEdit={canEdit}
                   onEdit={(e) => { setEditingExpense(e); setShowModal(true); }}
                   onDelete={(id) => deleteExpense(id)}
                 />
@@ -382,9 +391,11 @@ export default function ExpensesPage() {
               <CardContent className="py-12 text-center">
                 <Receipt className="h-10 w-10 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-500">No expenses yet</p>
-                <Button size="sm" variant="outline" className="mt-3" onClick={() => setShowModal(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add First Expense
-                </Button>
+                {canEdit && (
+                  <Button size="sm" variant="outline" className="mt-3" onClick={() => setShowModal(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add First Expense
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
@@ -424,7 +435,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Add/Edit Modal */}
-      {showModal && (
+      {canEdit && showModal && (
         <ExpenseModal
           expense={editingExpense}
           tripId={tripId}

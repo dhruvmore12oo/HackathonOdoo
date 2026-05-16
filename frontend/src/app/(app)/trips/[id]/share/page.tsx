@@ -13,9 +13,13 @@ import {
   useCollaborators, useInviteCollaborator, useRemoveCollaborator,
   useUpdateCollaborator, useActivityFeed,
 } from '@/hooks/useShare';
+import { useTrip } from '@/hooks/useTrips';
 import { ROUTES } from '@/lib/constants';
+import { canManageCollaboration, getTripRole } from '@/lib/permissions';
 import { formatDate, getAssetUrl } from '@/lib/utils';
 import type { CollaboratorRole, Collaborator } from '@/types';
+
+type ManagedCollaboratorRole = Exclude<CollaboratorRole, 'owner'>;
 
 const ROLE_ICONS: Record<CollaboratorRole, React.ElementType> = { owner: Shield, editor: Edit3, viewer: Eye };
 const ROLE_COLORS: Record<CollaboratorRole, string> = {
@@ -104,7 +108,14 @@ function ShareLinksSection({ tripId }: { tripId: string }) {
   );
 }
 
-function CollabRow({ collab, onRemove, onRoleChange }: { collab: Collaborator; onRemove: () => void; onRoleChange: (role: string) => void }) {
+function CollabRow({
+  collab, canManage, onRemove, onRoleChange,
+}: {
+  collab: Collaborator;
+  canManage: boolean;
+  onRemove: () => void;
+  onRoleChange: (role: ManagedCollaboratorRole) => void;
+}) {
   const Icon = ROLE_ICONS[collab.role] ?? Eye;
   const initials = `${collab.first_name?.[0] ?? ''}${collab.last_name?.[0] ?? ''}`.toUpperCase() || '?';
   return (
@@ -119,9 +130,9 @@ function CollabRow({ collab, onRemove, onRoleChange }: { collab: Collaborator; o
       <Badge className={`text-[10px] flex items-center gap-1 ${ROLE_COLORS[collab.role]}`}>
         <Icon className="h-3 w-3" /> {collab.accepted_at ? collab.role : 'pending'}
       </Badge>
-      {collab.role !== 'owner' && (
+      {canManage && collab.role !== 'owner' && (
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-          <select className="text-xs border border-gray-200 rounded-lg px-1.5 py-0.5 bg-white" value={collab.role} onChange={(e) => onRoleChange(e.target.value)}>
+          <select className="text-xs border border-gray-200 rounded-lg px-1.5 py-0.5 bg-white" value={collab.role} onChange={(e) => onRoleChange(e.target.value as ManagedCollaboratorRole)}>
             <option value="editor">Editor</option>
             <option value="viewer">Viewer</option>
           </select>
@@ -132,33 +143,43 @@ function CollabRow({ collab, onRemove, onRoleChange }: { collab: Collaborator; o
   );
 }
 
-function CollaboratorsSection({ tripId }: { tripId: string }) {
+function CollaboratorsSection({ tripId, canManage }: { tripId: string; canManage: boolean }) {
   const { data: collaborators, isLoading } = useCollaborators(tripId);
   const { mutate: invite, isPending: inviting } = useInviteCollaborator(tripId);
   const { mutate: remove } = useRemoveCollaborator(tripId);
   const { mutate: updateRole } = useUpdateCollaborator(tripId);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<CollaboratorRole>('viewer');
+  const [inviteRole, setInviteRole] = useState<ManagedCollaboratorRole>('viewer');
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-brand-500" /> Collaborators</CardTitle>
-        <Button size="sm" variant="outline" onClick={() => setShowInvite(true)} leftIcon={<UserPlus className="h-3.5 w-3.5" />}>Invite</Button>
+        {canManage && (
+          <Button size="sm" variant="outline" onClick={() => setShowInvite(true)} leftIcon={<UserPlus className="h-3.5 w-3.5" />}>Invite</Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading ? <div className="flex justify-center py-4"><Spinner size="sm" /></div>
           : collaborators && collaborators.length > 0
-          ? collaborators.map((c) => <CollabRow key={c.id} collab={c} onRemove={() => remove(c.id)} onRoleChange={(role) => updateRole({ id: c.id, role })} />)
+          ? collaborators.map((c) => (
+            <CollabRow
+              key={c.id}
+              collab={c}
+              canManage={canManage}
+              onRemove={() => remove(c.id)}
+              onRoleChange={(role) => updateRole({ id: c.id, role })}
+            />
+          ))
           : <p className="text-center text-sm text-gray-400 py-4">No collaborators yet.</p>}
       </CardContent>
-      <Modal isOpen={showInvite} onClose={() => setShowInvite(false)} title="Invite Collaborator" size="sm">
+      <Modal isOpen={canManage && showInvite} onClose={() => setShowInvite(false)} title="Invite Collaborator" size="sm">
         <div className="space-y-4">
           <Input label="Email Address" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="collaborator@email.com" />
           <div>
             <label className="label-base">Role</label>
-            <select className="input-base" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as CollaboratorRole)}>
+            <select className="input-base" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as ManagedCollaboratorRole)}>
               <option value="viewer">👁️ Viewer — read only</option>
               <option value="editor">✏️ Editor — can edit</option>
             </select>
@@ -199,15 +220,24 @@ function ActivityFeedSection({ tripId }: { tripId: string }) {
 export default function TripSharePage() {
   const params = useParams();
   const tripId = params.id as string;
+  const { data: trip, isLoading } = useTrip(tripId);
+  const canManage = canManageCollaboration(getTripRole(trip));
+
+  if (isLoading) {
+    return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
+  }
+
   return (
     <div className="animate-in space-y-6 max-w-3xl mx-auto">
       <div>
         <Link href={ROUTES.TRIP(tripId)} className="text-sm text-link inline-flex items-center gap-1 mb-2"><ArrowLeft className="h-4 w-4" /> Back to trip</Link>
         <h1 className="section-heading flex items-center gap-2"><Share2 className="h-5 w-5 text-brand-500" /> Share & Collaborate</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage who can see and edit this trip.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {canManage ? 'Manage who can see and edit this trip.' : 'View collaborators and recent activity for this trip.'}
+        </p>
       </div>
-      <ShareLinksSection tripId={tripId} />
-      <CollaboratorsSection tripId={tripId} />
+      {canManage && <ShareLinksSection tripId={tripId} />}
+      <CollaboratorsSection tripId={tripId} canManage={canManage} />
       <ActivityFeedSection tripId={tripId} />
     </div>
   );

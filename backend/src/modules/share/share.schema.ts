@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { uuidSchema } from '../../schemas/common.schema';
-import { COLLABORATOR_ROLES } from './share.constants';
+
+const MANAGEABLE_COLLABORATOR_ROLES = ['editor', 'viewer'] as const;
 
 export const createShareLinkSchema = z.object({
   visibility: z.enum(['public', 'unlisted']).default('public'),
@@ -14,11 +15,11 @@ export const verifyPasswordSchema = z.object({
 
 export const inviteCollaboratorSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  role: z.enum(COLLABORATOR_ROLES).default('viewer'),
+  role: z.enum(MANAGEABLE_COLLABORATOR_ROLES).default('viewer'),
 });
 
 export const updateCollaboratorSchema = z.object({
-  role: z.enum(COLLABORATOR_ROLES),
+  role: z.enum(MANAGEABLE_COLLABORATOR_ROLES),
 });
 
 export const publicTripsQuerySchema = z.object({

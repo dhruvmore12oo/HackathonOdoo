@@ -67,6 +67,13 @@ export async function revokeShareLink(id: UUID): Promise<void> {
   await query('DELETE FROM trip_share_links WHERE id = $1', [id]);
 }
 
+export async function getShareLinkById(id: UUID): Promise<ShareLinkRow | null> {
+  return queryOne<ShareLinkRow>(
+    'SELECT * FROM trip_share_links WHERE id = $1',
+    [id]
+  );
+}
+
 export async function regenerateShareLink(id: UUID, tripId: UUID): Promise<ShareLinkRow> {
   const newSlug = await generateUniqueSlug();
   await query('UPDATE trips SET share_slug = $1 WHERE id = $2', [newSlug, tripId]);
@@ -120,6 +127,16 @@ export async function removeCollaborator(collaboratorId: UUID): Promise<void> {
   await query('DELETE FROM trip_collaborators WHERE id = $1', [collaboratorId]);
 }
 
+export async function getCollaboratorById(collaboratorId: UUID): Promise<CollaboratorRow | null> {
+  return queryOne<CollaboratorRow>(
+    `SELECT tc.*, u.first_name, u.last_name, u.email, u.profile_photo_url as avatar_url
+     FROM trip_collaborators tc
+     JOIN users u ON u.id = tc.user_id
+     WHERE tc.id = $1`,
+    [collaboratorId]
+  );
+}
+
 export async function getCollaboratorsByTrip(tripId: UUID): Promise<CollaboratorRow[]> {
   return queryMany<CollaboratorRow>(
     `SELECT tc.*, u.first_name, u.last_name, u.email, u.profile_photo_url as avatar_url
@@ -128,6 +145,46 @@ export async function getCollaboratorsByTrip(tripId: UUID): Promise<Collaborator
      WHERE tc.trip_id = $1
      ORDER BY tc.created_at ASC`,
     [tripId]
+  );
+}
+
+export interface PendingInvitationRow extends CollaboratorRow {
+  trip_title: string;
+  trip_cover_photo_url: string | null;
+  trip_start_date: string;
+  trip_end_date: string;
+  trip_destination_summary: string | null;
+  inviter_first_name: string;
+  inviter_last_name: string;
+  inviter_email: string;
+}
+
+export async function getPendingInvitationsByUser(userId: UUID): Promise<PendingInvitationRow[]> {
+  return queryMany<PendingInvitationRow>(
+    `SELECT tc.*,
+            u.first_name, u.last_name, u.email, u.profile_photo_url as avatar_url,
+            COALESCE(t.title, t.name) as trip_title,
+            t.cover_photo_url as trip_cover_photo_url,
+            t.start_date as trip_start_date,
+            t.end_date as trip_end_date,
+            t.destination_summary as trip_destination_summary,
+            inv.first_name as inviter_first_name,
+            inv.last_name as inviter_last_name,
+            inv.email as inviter_email
+     FROM trip_collaborators tc
+     JOIN users u ON u.id = tc.user_id
+     JOIN trips t ON t.id = tc.trip_id AND t.deleted_at IS NULL
+     LEFT JOIN users inv ON inv.id = tc.invited_by
+     WHERE tc.user_id = $1 AND tc.accepted_at IS NULL
+     ORDER BY tc.created_at DESC`,
+    [userId]
+  );
+}
+
+export async function declineInvitation(tripId: UUID, userId: UUID): Promise<void> {
+  await query(
+    'DELETE FROM trip_collaborators WHERE trip_id = $1 AND user_id = $2 AND accepted_at IS NULL',
+    [tripId, userId]
   );
 }
 

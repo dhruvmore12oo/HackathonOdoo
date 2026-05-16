@@ -34,6 +34,10 @@ router.post('/trips/:tripId/collaborators/accept', validate(tripIdParamSchema, '
 router.patch('/collaborators/:id', validate(collaboratorIdParamSchema, 'params'), validate(updateCollaboratorSchema), ctrl.updateCollaborator);
 router.delete('/collaborators/:id', validate(collaboratorIdParamSchema, 'params'), ctrl.removeCollaborator);
 
+// Invitations
+router.get('/my-invitations', ctrl.getMyInvitations);
+router.post('/trips/:tripId/collaborators/decline', validate(tripIdParamSchema, 'params'), ctrl.declineInvitation);
+
 // Activity feed
 router.get('/trips/:tripId/activity-feed', validate(tripIdParamSchema, 'params'), ctrl.getActivityFeed);
 

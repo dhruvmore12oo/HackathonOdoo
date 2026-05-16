@@ -22,8 +22,7 @@ export const revokeShareLink = asyncHandler(async (req: Request, res: Response) 
 
 export const regenerateShareLink = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = (req as AuthenticatedRequest).user!;
-  const { tripId } = req.body as { tripId: UUID };
-  const link = await shareService.regenerateShareLink(userId, req.params.id as UUID, tripId);
+  const link = await shareService.regenerateShareLink(userId, req.params.id as UUID);
   sendSuccess(res, link, 'Share link regenerated');
 });
 
@@ -76,15 +75,13 @@ export const acceptInvitation = asyncHandler(async (req: Request, res: Response)
 
 export const updateCollaborator = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = (req as AuthenticatedRequest).user!;
-  const { tripId } = req.body as { tripId: UUID };
-  const collab = await shareService.updateCollaborator(userId, tripId, req.params.id as UUID, req.body);
+  const collab = await shareService.updateCollaborator(userId, req.params.id as UUID, req.body);
   sendSuccess(res, collab, 'Collaborator updated');
 });
 
 export const removeCollaborator = asyncHandler(async (req: Request, res: Response) => {
   const { userId } = (req as AuthenticatedRequest).user!;
-  const { tripId } = req.body as { tripId: UUID };
-  await shareService.removeCollaborator(userId, tripId, req.params.id as UUID);
+  await shareService.removeCollaborator(userId, req.params.id as UUID);
   sendNoContent(res);
 });
 
@@ -100,6 +97,20 @@ export const getActivityFeed = asyncHandler(async (req: Request, res: Response) 
   const { userId } = (req as AuthenticatedRequest).user!;
   const feed = await shareService.getActivityFeed(userId, req.params.tripId as UUID);
   sendSuccess(res, feed);
+});
+
+// ── My Invitations ──
+
+export const getMyInvitations = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = (req as AuthenticatedRequest).user!;
+  const invitations = await shareService.getMyInvitations(userId);
+  sendSuccess(res, invitations);
+});
+
+export const declineInvitation = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = (req as AuthenticatedRequest).user!;
+  await shareService.declineInvitation(userId, req.params.tripId as UUID);
+  sendNoContent(res);
 });
 
 // ── Community ──

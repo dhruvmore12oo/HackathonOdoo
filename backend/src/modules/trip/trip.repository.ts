@@ -1,5 +1,6 @@
 import { query, queryOne, queryMany, withTransaction } from '../../lib/db';
 import { UUID } from '../../types';
+import { CollaboratorRoleType } from '../share/share.constants';
 import { CreateTripInput, UpdateTripInput, TripListQuery } from './trip.schema';
 import { TRIP_SORTABLE_FIELDS, DEFAULT_TRIP_SORT, DEFAULT_TRIP_ORDER } from './trip.constants';
 import { generateSlug } from '../../utils';
@@ -24,6 +25,7 @@ export interface TripRow {
   archived_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  current_user_role?: CollaboratorRoleType;
 }
 
 interface CountRow {
@@ -48,7 +50,7 @@ export async function createTrip(userId: UUID, data: CreateTripInput): Promise<T
       data.visibility === 'public',
     ]
   );
-  return result!;
+  return { ...result!, current_user_role: 'owner' };
 }
 
 // ── Update ──
@@ -92,6 +94,22 @@ export async function findById(tripId: UUID): Promise<TripRow | null> {
   );
 }
 
+export async function findAccessibleById(tripId: UUID, userId: UUID): Promise<TripRow | null> {
+  return queryOne<TripRow>(
+    `SELECT t.*,
+       CASE WHEN t.user_id = $2 THEN 'owner' ELSE tc.role END as current_user_role
+     FROM trips t
+     LEFT JOIN trip_collaborators tc
+       ON tc.trip_id = t.id
+      AND tc.user_id = $2
+      AND tc.accepted_at IS NOT NULL
+     WHERE t.id = $1
+       AND t.deleted_at IS NULL
+       AND (t.user_id = $2 OR tc.user_id IS NOT NULL)`,
+    [tripId, userId]
+  );
+}
+
 export async function findByIdIncludeDeleted(tripId: UUID): Promise<TripRow | null> {
   return queryOne<TripRow>('SELECT * FROM trips WHERE id = $1', [tripId]);
 }
@@ -102,7 +120,10 @@ export async function findByUser(
   userId: UUID,
   filters: TripListQuery
 ): Promise<{ rows: TripRow[]; total: number }> {
-  const conditions: string[] = ['t.user_id = $1', 't.deleted_at IS NULL'];
+  const conditions: string[] = [
+    '(t.user_id = $1 OR tc.user_id IS NOT NULL)',
+    't.deleted_at IS NULL',
+  ];
   const params: unknown[] = [userId];
   let paramIdx = 2;
 
@@ -132,9 +153,24 @@ export async function findByUser(
   const offset = ((filters.page ?? 1) - 1) * limit;
 
   const [countResult, rows] = await Promise.all([
-    queryOne<CountRow>(`SELECT COUNT(*) as count FROM trips t WHERE ${whereClause}`, params),
+    queryOne<CountRow>(
+      `SELECT COUNT(*) as count
+       FROM trips t
+       LEFT JOIN trip_collaborators tc
+         ON tc.trip_id = t.id
+        AND tc.user_id = $1
+        AND tc.accepted_at IS NOT NULL
+       WHERE ${whereClause}`,
+      params
+    ),
     queryMany<TripRow>(
-      `SELECT t.* FROM trips t
+      `SELECT t.*,
+         CASE WHEN t.user_id = $1 THEN 'owner' ELSE tc.role END as current_user_role
+       FROM trips t
+       LEFT JOIN trip_collaborators tc
+         ON tc.trip_id = t.id
+        AND tc.user_id = $1
+        AND tc.accepted_at IS NOT NULL
        WHERE ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT ${limit} OFFSET ${offset}`,
@@ -156,7 +192,7 @@ export async function restore(tripId: UUID): Promise<TripRow> {
     'UPDATE trips SET deleted_at = NULL, archived_at = NULL WHERE id = $1 RETURNING *',
     [tripId]
   );
-  return result!;
+  return { ...result!, current_user_role: 'owner' };
 }
 
 // ── Archive ──
@@ -166,7 +202,7 @@ export async function archive(tripId: UUID): Promise<TripRow> {
     'UPDATE trips SET archived_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *',
     [tripId]
   );
-  return result!;
+  return { ...result!, current_user_role: 'owner' };
 }
 
 export async function unarchive(tripId: UUID): Promise<TripRow> {
@@ -174,7 +210,7 @@ export async function unarchive(tripId: UUID): Promise<TripRow> {
     'UPDATE trips SET archived_at = NULL WHERE id = $1 AND deleted_at IS NULL RETURNING *',
     [tripId]
   );
-  return result!;
+  return { ...result!, current_user_role: 'owner' };
 }
 
 // ── Duplicate ──
@@ -200,7 +236,7 @@ export async function duplicateTrip(tripId: UUID, userId: UUID): Promise<TripRow
         original.destination_summary, slug, original.cover_photo_url,
       ]
     );
-    return result.rows[0];
+    return { ...result.rows[0], current_user_role: 'owner' };
   });
 }
 
@@ -230,7 +266,13 @@ export async function getTripStats(userId: UUID): Promise<{
        COUNT(*) FILTER (WHERE status = 'upcoming') as upcoming,
        COUNT(*) FILTER (WHERE status = 'ongoing') as ongoing,
        COUNT(*) FILTER (WHERE status = 'completed') as completed
-     FROM trips WHERE user_id = $1 AND deleted_at IS NULL`,
+     FROM trips t
+     LEFT JOIN trip_collaborators tc
+       ON tc.trip_id = t.id
+      AND tc.user_id = $1
+      AND tc.accepted_at IS NOT NULL
+     WHERE (t.user_id = $1 OR tc.user_id IS NOT NULL)
+       AND t.deleted_at IS NULL`,
     [userId]
   );
   return {

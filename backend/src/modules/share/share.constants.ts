@@ -25,12 +25,13 @@ export const SLUG_LENGTH = 12;
 
 /** Permissions: which roles can perform which actions */
 export const ROLE_PERMISSIONS: Record<CollaboratorRoleType, {
+  canView: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canManageCollaborators: boolean;
   canManageShare: boolean;
 }> = {
-  owner: { canEdit: true, canDelete: true, canManageCollaborators: true, canManageShare: true },
-  editor: { canEdit: true, canDelete: false, canManageCollaborators: false, canManageShare: false },
-  viewer: { canEdit: false, canDelete: false, canManageCollaborators: false, canManageShare: false },
+  owner: { canView: true, canEdit: true, canDelete: true, canManageCollaborators: true, canManageShare: true },
+  editor: { canView: true, canEdit: true, canDelete: false, canManageCollaborators: false, canManageShare: false },
+  viewer: { canView: true, canEdit: false, canDelete: false, canManageCollaborators: false, canManageShare: false },
 };
