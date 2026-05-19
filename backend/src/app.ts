@@ -11,6 +11,9 @@ import routes from './routes';
 
 const app = express();
 
+// Trust reverse proxy (needed for Render + express-rate-limit)
+app.set('trust proxy', 1);
+
 // ── Security ──
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
