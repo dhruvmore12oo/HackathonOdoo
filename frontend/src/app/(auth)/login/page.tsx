@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,15 +28,26 @@ export default function LoginPage() {
   });
 
   const onSubmit = (data: LoginForm) => {
-    login(data);
+    login({
+      ...data,
+      email: data.email.trim().toLowerCase(),
+    });
   };
 
   return (
     <GuestGuard>
       <div className="animate-in">
+        <div className="mb-6 lg:hidden">
+          <Link href="/" className="inline-block rounded-3xl bg-white px-5 py-3 shadow-lg ring-1 ring-gray-100">
+            <Image src="/logo-full.png" alt="Traveloop" width={800} height={533} className="h-auto w-64 max-w-full object-contain" priority />
+          </Link>
+        </div>
         <div className="mb-8">
           <h2 className="font-heading text-2xl font-bold text-gray-900">Welcome back</h2>
           <p className="text-gray-500 mt-1">Sign in to continue planning your next adventure</p>
+          <p className="text-xs text-gray-400 mt-2">
+            If your account was created with Google, use Continue with Google.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" id="login-form">

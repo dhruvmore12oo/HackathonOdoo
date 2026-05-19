@@ -1,6 +1,9 @@
 export const COLLABORATOR_ROLES = ['owner', 'editor', 'viewer'] as const;
 export type CollaboratorRoleType = (typeof COLLABORATOR_ROLES)[number];
 
+export const MANAGEABLE_COLLABORATOR_ROLES = ['editor', 'viewer'] as const;
+export type ManageableCollaboratorRoleType = (typeof MANAGEABLE_COLLABORATOR_ROLES)[number];
+
 export const FEED_ACTIONS = {
   TRIP_CREATED: 'trip_created',
   TRIP_UPDATED: 'trip_updated',

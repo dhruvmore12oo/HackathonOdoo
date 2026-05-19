@@ -24,6 +24,18 @@ export interface TrendingCity extends SearchCityResult {
   searchCount: number;
 }
 
+export interface CityPlaceSuggestion {
+  id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  estimatedCost?: number;
+  durationHours?: number | null;
+  imageUrl?: string | null;
+  distanceMeters?: number;
+  source: 'catalogue' | 'opentripmap' | 'suggested';
+}
+
 export interface RecentSearch {
   id: string;
   query: string;
@@ -59,6 +71,21 @@ export interface GeoDBResponse {
 export interface CitySearchProvider {
   searchCities(query: string, countryCode?: string, limit?: number, offset?: number): Promise<GeoDBCity[]>;
   getCityDetails(cityId: string): Promise<GeoDBCity | null>;
+}
+
+export interface OpenTripMapPlace {
+  xid: string;
+  name: string;
+  kinds?: string;
+  dist?: number;
+  rate?: number;
+  point?: {
+    lon: number;
+    lat: number;
+  };
+  preview?: {
+    source?: string;
+  };
 }
 
 // ── Media Types ──

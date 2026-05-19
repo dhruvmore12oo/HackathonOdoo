@@ -8,6 +8,7 @@ export const createTripSchema = z.object({
   start_date: dateSchema,
   end_date: dateSchema,
   destination_summary: z.string().max(300).trim().optional().nullable(),
+  cover_photo_url: z.string().url().max(2000).optional().nullable(),
   total_budget: z.coerce.number().min(0).optional().default(0),
   tags: z.array(z.string().max(50)).max(10).optional().default([]),
   visibility: z.enum(['private', 'shared', 'public']).optional().default('private'),

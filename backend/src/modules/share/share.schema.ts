@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { uuidSchema } from '../../schemas/common.schema';
-
-const MANAGEABLE_COLLABORATOR_ROLES = ['editor', 'viewer'] as const;
+import { MANAGEABLE_COLLABORATOR_ROLES } from './share.constants';
 
 export const createShareLinkSchema = z.object({
   visibility: z.enum(['public', 'unlisted']).default('public'),

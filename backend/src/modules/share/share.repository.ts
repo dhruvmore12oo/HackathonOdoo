@@ -6,7 +6,7 @@ import {
   PublicTripData, PublicSection, PublicActivity,
 } from './share.types';
 import { CreateShareLinkInput } from './share.schema';
-import { SLUG_ALPHABET, SLUG_LENGTH } from './share.constants';
+import { ManageableCollaboratorRoleType, SLUG_ALPHABET, SLUG_LENGTH } from './share.constants';
 
 // ── Slug Generation ────────────────────────────────────────────────────────────
 
@@ -94,7 +94,7 @@ export function verifySharePassword(stored: string | null, input: string): boole
 export async function inviteCollaborator(
   tripId: UUID,
   invitedBy: UUID,
-  data: { user_id: UUID; role: string }
+  data: { user_id: UUID; role: ManageableCollaboratorRoleType }
 ): Promise<CollaboratorRow> {
   return (await queryOne<CollaboratorRow>(
     `INSERT INTO trip_collaborators (trip_id, user_id, role, invited_by)
@@ -115,7 +115,7 @@ export async function acceptInvitation(tripId: UUID, userId: UUID): Promise<Coll
 
 export async function updateCollaboratorRole(
   collaboratorId: UUID,
-  role: string
+  role: ManageableCollaboratorRoleType
 ): Promise<CollaboratorRow> {
   return (await queryOne<CollaboratorRow>(
     'UPDATE trip_collaborators SET role = $1 WHERE id = $2 RETURNING *',

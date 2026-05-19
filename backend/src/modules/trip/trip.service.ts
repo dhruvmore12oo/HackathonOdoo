@@ -5,9 +5,33 @@ import { assertTripOwnership } from './trip.permissions';
 import { assertTripAccess } from '../share/share.permissions';
 import * as tripRepo from './trip.repository';
 import { CreateTripInput, UpdateTripInput, TripListQuery } from './trip.schema';
+import { getHeroImage } from '../media/media.service';
+
+function getPrimaryDestination(summary?: string | null): string | null {
+  if (!summary) return null;
+  const [first] = summary
+    .split(/(?:->|→|,|;|\||\/|\s+-\s+)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return first || null;
+}
+
+async function resolveCoverPhoto(data: CreateTripInput): Promise<string | null> {
+  if (data.cover_photo_url) return data.cover_photo_url;
+
+  const destination = getPrimaryDestination(data.destination_summary);
+  if (!destination) return null;
+
+  try {
+    return await getHeroImage(destination, '');
+  } catch {
+    return null;
+  }
+}
 
 export async function createTrip(userId: UUID, data: CreateTripInput) {
-  const trip = await tripRepo.createTrip(userId, data);
+  const coverPhotoUrl = await resolveCoverPhoto(data);
+  const trip = await tripRepo.createTrip(userId, data, coverPhotoUrl);
   logger.info('Trip created', { userId, tripId: trip.id, title: trip.title });
   return trip;
 }

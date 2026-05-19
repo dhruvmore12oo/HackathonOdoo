@@ -3,7 +3,7 @@ import { z } from 'zod';
 // ── Reusable field schemas ──
 export const uuidSchema = z.string().uuid();
 
-export const emailSchema = z.string().email('Invalid email address').max(255);
+export const emailSchema = z.string().trim().email('Invalid email address').max(255);
 
 export const passwordSchema = z
   .string()

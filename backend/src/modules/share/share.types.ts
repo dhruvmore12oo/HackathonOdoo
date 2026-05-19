@@ -1,10 +1,11 @@
 import { UUID } from '../../types';
+import { CollaboratorRoleType } from './share.constants';
 
 export interface CollaboratorRow {
   id: UUID;
   trip_id: UUID;
   user_id: UUID;
-  role: string;
+  role: CollaboratorRoleType;
   invited_by: UUID | null;
   accepted_at: Date | null;
   created_at: Date;

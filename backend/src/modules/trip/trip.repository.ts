@@ -34,12 +34,16 @@ interface CountRow {
 
 // ── Create ──
 
-export async function createTrip(userId: UUID, data: CreateTripInput): Promise<TripRow> {
+export async function createTrip(
+  userId: UUID,
+  data: CreateTripInput,
+  coverPhotoUrl?: string | null
+): Promise<TripRow> {
   const slug = generateSlug(12);
   const result = await queryOne<TripRow>(
     `INSERT INTO trips (user_id, title, name, description, start_date, end_date,
-       total_budget, tags, visibility, status, destination_summary, share_slug, is_public)
-     VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       total_budget, tags, visibility, status, destination_summary, share_slug, is_public, cover_photo_url)
+     VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING *`,
     [
       userId, data.title, data.description || null,
@@ -48,6 +52,7 @@ export async function createTrip(userId: UUID, data: CreateTripInput): Promise<T
       data.visibility ?? 'private', data.status ?? 'upcoming',
       data.destination_summary || null, slug,
       data.visibility === 'public',
+      coverPhotoUrl || data.cover_photo_url || null,
     ]
   );
   return { ...result!, current_user_role: 'owner' };
@@ -97,15 +102,19 @@ export async function findById(tripId: UUID): Promise<TripRow | null> {
 export async function findAccessibleById(tripId: UUID, userId: UUID): Promise<TripRow | null> {
   return queryOne<TripRow>(
     `SELECT t.*,
-       CASE WHEN t.user_id = $2 THEN 'owner' ELSE tc.role END as current_user_role
+       CASE WHEN t.user_id = $2 THEN 'owner' ELSE access.role END as current_user_role
      FROM trips t
-     LEFT JOIN trip_collaborators tc
-       ON tc.trip_id = t.id
-      AND tc.user_id = $2
-      AND tc.accepted_at IS NOT NULL
+     LEFT JOIN LATERAL (
+       SELECT tc.role
+       FROM trip_collaborators tc
+       WHERE tc.trip_id = t.id
+         AND tc.user_id = $2
+         AND tc.accepted_at IS NOT NULL
+       LIMIT 1
+     ) access ON TRUE
      WHERE t.id = $1
        AND t.deleted_at IS NULL
-       AND (t.user_id = $2 OR tc.user_id IS NOT NULL)`,
+       AND (t.user_id = $2 OR access.role IS NOT NULL)`,
     [tripId, userId]
   );
 }
@@ -121,7 +130,7 @@ export async function findByUser(
   filters: TripListQuery
 ): Promise<{ rows: TripRow[]; total: number }> {
   const conditions: string[] = [
-    '(t.user_id = $1 OR tc.user_id IS NOT NULL)',
+    '(t.user_id = $1 OR access.role IS NOT NULL)',
     't.deleted_at IS NULL',
   ];
   const params: unknown[] = [userId];
@@ -156,21 +165,29 @@ export async function findByUser(
     queryOne<CountRow>(
       `SELECT COUNT(*) as count
        FROM trips t
-       LEFT JOIN trip_collaborators tc
-         ON tc.trip_id = t.id
-        AND tc.user_id = $1
-        AND tc.accepted_at IS NOT NULL
+       LEFT JOIN LATERAL (
+         SELECT tc.role
+         FROM trip_collaborators tc
+         WHERE tc.trip_id = t.id
+           AND tc.user_id = $1
+           AND tc.accepted_at IS NOT NULL
+         LIMIT 1
+       ) access ON TRUE
        WHERE ${whereClause}`,
       params
     ),
     queryMany<TripRow>(
       `SELECT t.*,
-         CASE WHEN t.user_id = $1 THEN 'owner' ELSE tc.role END as current_user_role
+         CASE WHEN t.user_id = $1 THEN 'owner' ELSE access.role END as current_user_role
        FROM trips t
-       LEFT JOIN trip_collaborators tc
-         ON tc.trip_id = t.id
-        AND tc.user_id = $1
-        AND tc.accepted_at IS NOT NULL
+       LEFT JOIN LATERAL (
+         SELECT tc.role
+         FROM trip_collaborators tc
+         WHERE tc.trip_id = t.id
+           AND tc.user_id = $1
+           AND tc.accepted_at IS NOT NULL
+         LIMIT 1
+       ) access ON TRUE
        WHERE ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT ${limit} OFFSET ${offset}`,
@@ -267,12 +284,16 @@ export async function getTripStats(userId: UUID): Promise<{
        COUNT(*) FILTER (WHERE status = 'ongoing') as ongoing,
        COUNT(*) FILTER (WHERE status = 'completed') as completed
      FROM trips t
-     LEFT JOIN trip_collaborators tc
-       ON tc.trip_id = t.id
-      AND tc.user_id = $1
-      AND tc.accepted_at IS NOT NULL
-     WHERE (t.user_id = $1 OR tc.user_id IS NOT NULL)
-       AND t.deleted_at IS NULL`,
+     WHERE t.deleted_at IS NULL
+       AND (
+         t.user_id = $1 OR EXISTS (
+           SELECT 1
+           FROM trip_collaborators tc
+           WHERE tc.trip_id = t.id
+             AND tc.user_id = $1
+             AND tc.accepted_at IS NOT NULL
+         )
+       )`,
     [userId]
   );
   return {

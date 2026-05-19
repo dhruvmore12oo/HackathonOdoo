@@ -50,7 +50,8 @@ export async function login(
   data: LoginInput,
   meta?: { ip?: string; userAgent?: string }
 ): Promise<{ user: UserPublic; tokens: AuthTokens }> {
-  const user = await authRepo.findUserByEmail(data.email);
+  const normalizedEmail = data.email.trim().toLowerCase();
+  const user = await authRepo.findUserByEmail(normalizedEmail);
   if (!user) {
     throw new InvalidCredentialsError();
   }
@@ -61,9 +62,24 @@ export async function login(
     throw new InvalidCredentialsError();
   }
 
-  const valid = await comparePassword(data.password, user.password_hash);
+  const normalizedPassword = data.password.normalize('NFKC');
+  let valid = await comparePassword(normalizedPassword, user.password_hash);
+
+  // Common copy/paste mistake: accidental leading/trailing spaces.
+  if (!valid) {
+    const trimmedPassword = normalizedPassword.trim();
+    if (trimmedPassword !== normalizedPassword) {
+      valid = await comparePassword(trimmedPassword, user.password_hash);
+    }
+  }
+
   if (!valid) {
     logger.warn('Failed login attempt', { email: data.email, ip: meta?.ip });
+    if (user.auth_provider === 'google') {
+      throw new InvalidCredentialsError(
+        'Password did not match. This account is linked with Google. Use Continue with Google or reset your password.'
+      );
+    }
     throw new InvalidCredentialsError();
   }
 

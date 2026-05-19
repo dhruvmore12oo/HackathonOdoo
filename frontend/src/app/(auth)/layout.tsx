@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: {
@@ -20,9 +21,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <div className="relative z-10 text-white text-center px-12">
           <div className="flex justify-center mb-6">
-            <div className="bg-white/95 rounded-2xl px-6 py-4 shadow-2xl backdrop-blur-sm">
-              <Image src="/logo.png" alt="Traveloop" width={400} height={160} className="h-28 w-auto object-contain" priority />
-            </div>
+            <Link href="/" className="block rounded-3xl bg-white/95 px-6 py-4 shadow-2xl ring-1 ring-white/30 backdrop-blur-sm">
+              <Image src="/logo-full.png" alt="Traveloop" width={800} height={533} className="h-auto w-80 max-w-full object-contain" priority />
+            </Link>
           </div>
           <p className="text-white/80 text-lg leading-relaxed max-w-md">
             Plan your perfect journey. Organize multi-city itineraries,

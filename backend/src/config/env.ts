@@ -33,6 +33,10 @@ const envSchema = z.object({
   UNSPLASH_ACCESS_KEY: z.string().default(''),
   UNSPLASH_BASE_URL: z.string().default('https://api.unsplash.com'),
 
+  // OpenTripMap API (optional, richer global place suggestions)
+  OPENTRIPMAP_API_KEY: z.string().default(''),
+  OPENTRIPMAP_BASE_URL: z.string().default('https://api.opentripmap.com/0.1/en/places'),
+
   // File Uploads
   MAX_FILE_SIZE_MB: z.coerce.number().default(5),
   UPLOAD_DIR: z.string().default('./uploads'),

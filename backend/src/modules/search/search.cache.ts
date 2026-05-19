@@ -1,6 +1,6 @@
 import { pool } from '../../config/database';
 import { logger } from '../../config/logger';
-import type { CachedCity } from './search.types';
+import type { CachedCity, CityPlaceSuggestion } from './search.types';
 import { MAX_TRENDING_CITIES } from './search.constants';
 
 /**
@@ -112,6 +112,51 @@ export async function searchCachedCities(
     return rows;
   } catch (error) {
     logger.error('Failed to search cached cities', { error });
+    return [];
+  }
+}
+
+export async function getCataloguePlacesForCity(
+  cityName: string,
+  countryName?: string,
+  limit = 8,
+): Promise<CityPlaceSuggestion[]> {
+  try {
+    const { rows } = await pool.query<{
+      id: string;
+      name: string;
+      category: string;
+      avg_cost: string;
+      duration_hours: string | null;
+      description: string | null;
+      thumbnail_url: string | null;
+    }>(
+      `SELECT ac.id, ac.name, ac.category, ac.avg_cost, ac.duration_hours,
+              ac.description, ac.thumbnail_url
+       FROM activity_catalogue ac
+       JOIN cities c ON c.id = ac.city_id
+       WHERE (LOWER(c.name) = LOWER($1) OR c.name % $1)
+         AND ($2::text IS NULL OR LOWER(c.country) = LOWER($2))
+       ORDER BY
+         CASE WHEN LOWER(c.name) = LOWER($1) THEN 0 ELSE 1 END,
+         ac.category ASC,
+         ac.name ASC
+       LIMIT $3`,
+      [cityName, countryName || null, limit],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      description: row.description,
+      estimatedCost: Number(row.avg_cost || 0),
+      durationHours: row.duration_hours ? Number(row.duration_hours) : null,
+      imageUrl: row.thumbnail_url,
+      source: 'catalogue',
+    }));
+  } catch (error) {
+    logger.error('Failed to fetch city place suggestions', { error, cityName });
     return [];
   }
 }

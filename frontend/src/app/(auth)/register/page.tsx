@@ -42,7 +42,7 @@ export default function RegisterPage() {
     registerUser({
       first_name: data.first_name,
       last_name: data.last_name,
-      email: data.email,
+      email: data.email.trim().toLowerCase(),
       password: data.password,
     });
   };

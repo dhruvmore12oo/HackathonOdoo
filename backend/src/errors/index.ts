@@ -70,8 +70,8 @@ export class InternalError extends AppError {
 }
 
 export class InvalidCredentialsError extends AppError {
-  constructor() {
-    super('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+  constructor(message = 'Invalid email or password') {
+    super(message, 401, 'INVALID_CREDENTIALS');
   }
 }
 

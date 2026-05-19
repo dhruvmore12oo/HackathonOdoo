@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
-import type { GeoDBCity, GeoDBResponse, CitySearchProvider } from './search.types';
+import type { GeoDBCity, GeoDBResponse, CitySearchProvider, OpenTripMapPlace } from './search.types';
 import {
   MAX_RETRY_ATTEMPTS,
   RETRY_BASE_DELAY_MS,
@@ -87,3 +87,52 @@ class GeoDBProvider implements CitySearchProvider {
 
 /** Singleton */
 export const geoDBProvider = new GeoDBProvider();
+
+class OpenTripMapProvider {
+  private readonly baseUrl: string;
+  private readonly apiKey: string;
+
+  constructor() {
+    this.baseUrl = env.OPENTRIPMAP_BASE_URL;
+    this.apiKey = env.OPENTRIPMAP_API_KEY;
+  }
+
+  get isConfigured(): boolean {
+    return Boolean(this.apiKey);
+  }
+
+  async getPlacesNearCity(
+    latitude: number,
+    longitude: number,
+    limit = 8,
+  ): Promise<OpenTripMapPlace[]> {
+    if (!this.isConfigured) return [];
+
+    try {
+      const { data } = await axios.get<OpenTripMapPlace[]>(`${this.baseUrl}/radius`, {
+        params: {
+          radius: 12000,
+          lat: latitude,
+          lon: longitude,
+          rate: 2,
+          limit,
+          format: 'json',
+          kinds: 'interesting_places,tourist_facilities,cultural,historic,architecture,natural',
+          apikey: this.apiKey,
+        },
+        timeout: EXTERNAL_API_TIMEOUT_MS,
+      });
+
+      return data.filter((place) => place.name?.trim());
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { status?: number }; message?: string };
+      logger.warn('OpenTripMap places request failed', {
+        status: axiosErr.response?.status,
+        message: axiosErr.message,
+      });
+      return [];
+    }
+  }
+}
+
+export const openTripMapProvider = new OpenTripMapProvider();
