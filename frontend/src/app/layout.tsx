@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/site.webmanifest',
+  verification: {
+    google: 'RSyIP-Z84S0v-8mFDEk8LwGfkYSzrp6aCMSAZU7-JK0',
+  },
   other: {
     'msapplication-TileColor': '#1A6B5A',
   },
