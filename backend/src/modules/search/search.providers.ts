@@ -94,7 +94,7 @@ class OpenTripMapProvider {
 
   constructor() {
     this.baseUrl = env.OPENTRIPMAP_BASE_URL;
-    this.apiKey = env.OPENTRIPMAP_API_KEY;
+    this.apiKey = env.OPENTRIPMAP_API_KEY.trim();
   }
 
   get isConfigured(): boolean {
@@ -109,13 +109,14 @@ class OpenTripMapProvider {
     if (!this.isConfigured) return [];
 
     try {
+      const requestLimit = Math.min(Math.max(limit * 8, 40), 100);
       const { data } = await axios.get<OpenTripMapPlace[]>(`${this.baseUrl}/radius`, {
         params: {
-          radius: 12000,
+          radius: 25000,
           lat: latitude,
           lon: longitude,
-          rate: 2,
-          limit,
+          rate: 1,
+          limit: requestLimit,
           format: 'json',
           kinds: 'interesting_places,tourist_facilities,cultural,historic,architecture,natural',
           apikey: this.apiKey,
@@ -123,7 +124,15 @@ class OpenTripMapProvider {
         timeout: EXTERNAL_API_TIMEOUT_MS,
       });
 
-      return data.filter((place) => place.name?.trim());
+      if (!Array.isArray(data)) {
+        logger.warn('OpenTripMap returned an unexpected response shape');
+        return [];
+      }
+
+      return data
+        .filter((place) => place.name?.trim())
+        .sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0) || (a.dist ?? 0) - (b.dist ?? 0))
+        .slice(0, limit);
     } catch (error: unknown) {
       const axiosErr = error as { response?: { status?: number }; message?: string };
       logger.warn('OpenTripMap places request failed', {

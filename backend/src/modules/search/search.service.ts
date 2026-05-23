@@ -152,9 +152,32 @@ function dedupePlaces(places: CityPlaceSuggestion[]): CityPlaceSuggestion[] {
   });
 }
 
+function getCatalogueLookupNames(cityName: string): string[] {
+  const normalized = cityName.trim();
+  const names = new Set<string>([normalized]);
+
+  const arrondissementMatch = normalized.match(/^\d+(?:st|nd|rd|th)?\s+arrondissement\s+of\s+(.+)$/i);
+  if (arrondissementMatch?.[1]) {
+    names.add(arrondissementMatch[1].trim());
+  }
+
+  const ofMatch = normalized.match(/\bof\s+(.+)$/i);
+  if (ofMatch?.[1]) {
+    names.add(ofMatch[1].trim());
+  }
+
+  return [...names].filter(Boolean);
+}
+
 export async function getCityPlaces(input: CityPlacesInput): Promise<CityPlaceSuggestion[]> {
   const limit = input.limit ?? 8;
-  const cataloguePlaces = await getCataloguePlacesForCity(input.name, input.country, limit);
+  let cataloguePlaces: CityPlaceSuggestion[] = [];
+
+  for (const lookupName of getCatalogueLookupNames(input.name)) {
+    cataloguePlaces = await getCataloguePlacesForCity(lookupName, input.country, limit);
+    if (cataloguePlaces.length > 0) break;
+  }
+
   let externalPlaces: CityPlaceSuggestion[] = [];
 
   if (
