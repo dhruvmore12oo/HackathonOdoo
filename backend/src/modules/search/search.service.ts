@@ -1,7 +1,8 @@
 import { logger } from '../../config/logger';
-import { geoDBProvider } from './search.providers';
+import { geoDBProvider, openTripMapProvider } from './search.providers';
 import { getCityImage } from '../media/media.service';
 import {
+  getCataloguePlacesForCity,
   upsertCachedCity,
   getTrendingCities as getTrendingFromCache,
   searchCachedCities,
@@ -11,7 +12,8 @@ import {
   serializeCachedCity,
   serializeTrendingCity,
 } from './search.serializer';
-import type { SearchCityResult, TrendingCity } from './search.types';
+import type { CityPlacesInput } from './search.schema';
+import type { CityPlaceSuggestion, OpenTripMapPlace, SearchCityResult, TrendingCity } from './search.types';
 import { FALLBACK_HERO_IMAGE, FALLBACK_THUMBNAIL_IMAGE, SEARCH_CACHE_TTL_SECONDS } from './search.constants';
 
 // ── In-memory TTL cache for hot search results ──
@@ -104,4 +106,70 @@ export async function searchCities(
 export async function getTrendingCities(limit = 12): Promise<TrendingCity[]> {
   const rows = await getTrendingFromCache(limit);
   return rows.map(serializeTrendingCity);
+}
+
+function humanizeKind(kinds?: string): string {
+  if (!kinds) return 'Place';
+
+  const priority = [
+    'interesting_places',
+    'historic',
+    'architecture',
+    'cultural',
+    'natural',
+    'tourist_facilities',
+  ];
+  const parts = kinds.split(',').map((kind) => kind.trim()).filter(Boolean);
+  const best = priority.find((kind) => parts.includes(kind)) || parts[0] || 'place';
+
+  return best
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function mapOpenTripMapPlace(place: OpenTripMapPlace, cityName: string): CityPlaceSuggestion {
+  const category = humanizeKind(place.kinds);
+
+  return {
+    id: `opentripmap:${place.xid}`,
+    name: place.name.trim(),
+    category,
+    description: `Popular ${category.toLowerCase()} spot near ${cityName}.`,
+    imageUrl: place.preview?.source || null,
+    distanceMeters: place.dist ? Math.round(place.dist) : undefined,
+    source: 'opentripmap',
+  };
+}
+
+function dedupePlaces(places: CityPlaceSuggestion[]): CityPlaceSuggestion[] {
+  const seen = new Set<string>();
+
+  return places.filter((place) => {
+    const key = place.name.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export async function getCityPlaces(input: CityPlacesInput): Promise<CityPlaceSuggestion[]> {
+  const limit = input.limit ?? 8;
+  const cataloguePlaces = await getCataloguePlacesForCity(input.name, input.country, limit);
+  let externalPlaces: CityPlaceSuggestion[] = [];
+
+  if (
+    cataloguePlaces.length < limit
+    && input.lat !== undefined
+    && input.lng !== undefined
+    && openTripMapProvider.isConfigured
+  ) {
+    const places = await openTripMapProvider.getPlacesNearCity(
+      input.lat,
+      input.lng,
+      limit - cataloguePlaces.length,
+    );
+    externalPlaces = places.map((place) => mapOpenTripMapPlace(place, input.name));
+  }
+
+  return dedupePlaces([...cataloguePlaces, ...externalPlaces]).slice(0, limit);
 }

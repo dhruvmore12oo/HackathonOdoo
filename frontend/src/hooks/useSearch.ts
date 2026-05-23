@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { API_ENDPOINTS } from '@/lib/constants';
-import type { ApiResponse, SearchCityResult, TrendingCity } from '@/types';
+import type { ApiResponse, CityPlaceSuggestion, SearchCityResult, TrendingCity } from '@/types';
 
 /**
  * Search cities with debounced query.
@@ -41,5 +41,31 @@ export function useTrendingCities() {
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  });
+}
+
+/**
+ * Fetch recommended places for a selected city.
+ */
+export function useCityPlaces(city?: SearchCityResult | null) {
+  return useQuery({
+    queryKey: queryKeys.search.cityPlaces(city?.id ?? ''),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        name: city!.name,
+        country: city!.country,
+        lat: String(city!.latitude),
+        lng: String(city!.longitude),
+      });
+
+      const res = await api.get<ApiResponse<CityPlaceSuggestion[]>>(
+        `${API_ENDPOINTS.SEARCH.CITY_PLACES}?${params}`,
+      );
+      return res.data.data;
+    },
+    enabled: !!city,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
   });
 }

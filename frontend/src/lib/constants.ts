@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
   HEALTH: '/health',
   SEARCH: {
     CITIES: '/search/cities',
+    CITY_PLACES: '/search/city-places',
     TRENDING: '/search/trending',
   },
 } as const;

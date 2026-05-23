@@ -136,7 +136,7 @@ export async function getCataloguePlacesForCity(
        FROM activity_catalogue ac
        JOIN cities c ON c.id = ac.city_id
        WHERE (LOWER(c.name) = LOWER($1) OR c.name % $1)
-         AND ($2::text IS NULL OR LOWER(c.country) = LOWER($2))
+         AND ($2::text IS NULL OR LOWER(c.country) = LOWER($2) OR c.country % $2)
        ORDER BY
          CASE WHEN LOWER(c.name) = LOWER($1) THEN 0 ELSE 1 END,
          ac.category ASC,

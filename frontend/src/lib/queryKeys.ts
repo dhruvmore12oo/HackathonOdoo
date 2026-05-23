@@ -49,6 +49,7 @@ export const queryKeys = {
   // Search
   search: {
     cities: (q: string, country?: string) => ['search', 'cities', q, country] as const,
+    cityPlaces: (cityId: string) => ['search', 'city-places', cityId] as const,
     trending: ['search', 'trending'] as const,
     recent: ['search', 'recent'] as const,
   },

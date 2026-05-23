@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../../lib/response';
 import * as searchService from './search.service';
-import type { SearchCitiesInput, TrendingInput } from './search.schema';
+import type { CityPlacesInput, SearchCitiesInput, TrendingInput } from './search.schema';
 
 /**
  * GET /search/cities?q=...&country=...&limit=...&offset=...
@@ -32,6 +32,23 @@ export async function getTrending(
     const { limit } = req.query as unknown as TrendingInput;
     const results = await searchService.getTrendingCities(limit);
     sendSuccess(res, results, `${results.length} trending destinations`);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /search/city-places?name=...&country=...&lat=...&lng=...
+ */
+export async function getCityPlaces(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const input = req.query as unknown as CityPlacesInput;
+    const results = await searchService.getCityPlaces(input);
+    sendSuccess(res, results, `${results.length} suggested places`);
   } catch (error) {
     next(error);
   }

@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { createQueryClient } from '@/lib/queryClient';
 import { useSocketConnection, useRealtimeNotifications } from '@/lib/socket';
+import { useAuthStore } from '@/stores/authStore';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
+
+/** Hydrate auth state once at app startup — before any protected route renders. */
+function AuthHydrator({ children }: { children: React.ReactNode }) {
+  const hydrate = useAuthStore((s) => s.hydrate);
+  useEffect(() => { hydrate(); }, [hydrate]);
+  return <>{children}</>;
+}
 
 function SocketProvider({ children }: { children: React.ReactNode }) {
   useSocketConnection();
@@ -20,7 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
       <QueryClientProvider client={queryClient}>
-        <SocketProvider>{children}</SocketProvider>
+        <AuthHydrator><SocketProvider>{children}</SocketProvider></AuthHydrator>
       <Toaster
         position="bottom-right"
         toastOptions={{

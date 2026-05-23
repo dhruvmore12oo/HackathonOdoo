@@ -397,3 +397,15 @@ export interface SearchCityResult {
 export interface TrendingCity extends SearchCityResult {
   searchCount: number;
 }
+
+export interface CityPlaceSuggestion {
+  id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  estimatedCost?: number;
+  durationHours?: number | null;
+  imageUrl?: string | null;
+  distanceMeters?: number;
+  source: 'catalogue' | 'opentripmap' | 'suggested';
+}

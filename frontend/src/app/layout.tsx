@@ -3,6 +3,7 @@ import { Providers } from '@/providers/Providers';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://traveloop-sandy-sigma.vercel.app'),
   title: {
     default: 'Traveloop — Personalized Travel Planning',
     template: '%s | Traveloop',

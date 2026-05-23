@@ -10,7 +10,7 @@ import { getHeroImage } from '../media/media.service';
 function getPrimaryDestination(summary?: string | null): string | null {
   if (!summary) return null;
   const [first] = summary
-    .split(/(?:->|→|,|;|\||\/|\s+-\s+)/)
+    .split(/(?:->|\u2192|,|;|\||\/|\s+-\s+)/)
     .map((part) => part.trim())
     .filter(Boolean);
   return first || null;
