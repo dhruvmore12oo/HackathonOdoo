@@ -29,6 +29,7 @@ export const cityPlacesSchema = z.object({
     .max(100, 'City name must be at most 100 characters')
     .transform((v) => v.trim()),
   country: z.string().max(100).optional(),
+  type: z.enum(['city', 'region', 'country', 'place', 'CITY', 'ADM1', 'ADM2', 'COUNTRY']).optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   limit: z.coerce.number().int().min(1).max(12).default(8).optional(),

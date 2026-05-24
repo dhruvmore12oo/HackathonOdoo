@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import {
   ArrowLeft, Plus, ChevronDown, ChevronRight, Clock, MapPin,
   IndianRupee, Trash2, GripVertical, Sun, Sunset, Moon, Star,
@@ -35,6 +36,34 @@ const STATUS_CONFIG: Record<ActivityStatus, { icon: React.ElementType; color: st
   completed: { icon: CheckCircle2, color: 'text-green-500', label: 'Completed' },
   skipped: { icon: X, color: 'text-red-400', label: 'Skipped' },
 };
+
+interface PendingActivityImport {
+  key: string;
+  name: string;
+  locationName: string;
+  type: string;
+  notes: string;
+  estimatedCost: number;
+  estimatedDurationMinutes: number | null;
+}
+
+function getPendingActivityImport(searchParams: ReturnType<typeof useSearchParams>): PendingActivityImport | null {
+  const name = searchParams.get('activity')?.trim();
+  if (!name) return null;
+
+  const duration = Number(searchParams.get('duration') || 0);
+  const cost = Number(searchParams.get('cost') || 0);
+
+  return {
+    key: searchParams.toString(),
+    name,
+    locationName: searchParams.get('location')?.trim() || name,
+    type: searchParams.get('type')?.trim() || 'sightseeing',
+    notes: searchParams.get('notes')?.trim() || 'Added from destination recommendations.',
+    estimatedCost: Number.isFinite(cost) && cost > 0 ? cost : 0,
+    estimatedDurationMinutes: Number.isFinite(duration) && duration > 0 ? duration : null,
+  };
+}
 
 // ══════════════════════════════════════
 // ACTIVITY CARD
@@ -423,12 +452,78 @@ function AddSectionModal({
 // ══════════════════════════════════════
 export default function ItineraryBuilderPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const tripId = params.id as string;
   const { data: itinerary, isLoading } = useItinerary(tripId);
   const { data: trip, isLoading: tripLoading } = useTrip(tripId);
   const { expandedSections, toggleSection, activeDayFilter, setDayFilter } = useItineraryStore();
+  const { mutate: createImportedSection } = useCreateSection(tripId);
+  const { mutate: createImportedActivity } = useCreateActivity(tripId);
 
   const [addSectionDay, setAddSectionDay] = useState<number | null>(null);
+  const [handledPendingImport, setHandledPendingImport] = useState('');
+
+  const pendingActivityImport = useMemo(
+    () => getPendingActivityImport(searchParams),
+    [searchParams],
+  );
+
+  const canEdit = trip ? canEditTrip(getTripRole(trip)) : false;
+  const sections = itinerary?.sections ?? [];
+  const summary = itinerary?.summary;
+
+  useEffect(() => {
+    if (!pendingActivityImport || handledPendingImport === pendingActivityImport.key) return;
+    if (!canEdit) {
+      setHandledPendingImport(pendingActivityImport.key);
+      toast.error('You need edit access to add this place to the itinerary.');
+      router.replace(ROUTES.TRIP_ITINERARY(tripId));
+      return;
+    }
+
+    setHandledPendingImport(pendingActivityImport.key);
+    const activityPayload = {
+      name: pendingActivityImport.name,
+      type: pendingActivityImport.type,
+      location_name: pendingActivityImport.locationName,
+      estimated_cost: pendingActivityImport.estimatedCost,
+      estimated_duration_minutes: pendingActivityImport.estimatedDurationMinutes,
+      notes: pendingActivityImport.notes,
+      status: 'planned',
+    };
+
+    const clearImportUrl = () => router.replace(ROUTES.TRIP_ITINERARY(tripId));
+
+    if (sections.length === 0) {
+      createImportedSection(
+        { title: 'Recommended Places', day_number: 1, section_type: 'custom' },
+        {
+          onSuccess: (section) => {
+            createImportedActivity(
+              { sectionId: section.id, ...activityPayload },
+              { onSuccess: clearImportUrl },
+            );
+          },
+        },
+      );
+      return;
+    }
+
+    createImportedActivity(
+      { sectionId: sections[0].id, ...activityPayload },
+      { onSuccess: clearImportUrl },
+    );
+  }, [
+    canEdit,
+    createImportedActivity,
+    createImportedSection,
+    handledPendingImport,
+    pendingActivityImport,
+    router,
+    sections,
+    tripId,
+  ]);
 
   if (isLoading || tripLoading) {
     return (
@@ -438,10 +533,8 @@ export default function ItineraryBuilderPage() {
     );
   }
 
-  if (!itinerary) return null;
+  if (!itinerary || !summary) return null;
 
-  const canEdit = canEditTrip(getTripRole(trip));
-  const { sections, summary } = itinerary;
   const days = Array.from({ length: Math.max(summary.days, 1) }, (_, i) => i + 1);
 
   // Group sections by day

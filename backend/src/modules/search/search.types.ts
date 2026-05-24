@@ -1,11 +1,15 @@
 // ── Search Module Types ──
 
+export type DestinationType = 'city' | 'region' | 'country' | 'place';
+
 export interface SearchCityResult {
   id: string;
   name: string;
   country: string;
   countryCode: string;
   region?: string;
+  type?: string;
+  destinationType?: DestinationType;
   latitude: number;
   longitude: number;
   population?: number;
@@ -57,7 +61,7 @@ export interface GeoDBCity {
   regionCode: string;
   latitude: number;
   longitude: number;
-  population: number;
+  population?: number;
 }
 
 export interface GeoDBResponse {
@@ -68,8 +72,26 @@ export interface GeoDBResponse {
   };
 }
 
+export interface GeoDBCountry {
+  code: string;
+  currencyCodes?: string[];
+  name: string;
+  wikiDataId?: string;
+}
+
+export interface GeoDBCountryResponse {
+  data: GeoDBCountry[];
+  metadata: {
+    currentOffset: number;
+    totalCount: number;
+  };
+}
+
 export interface CitySearchProvider {
   searchCities(query: string, countryCode?: string, limit?: number, offset?: number): Promise<GeoDBCity[]>;
+  searchAdminDivisions(query: string, countryCode?: string, limit?: number, offset?: number): Promise<GeoDBCity[]>;
+  searchCountries(query: string, limit?: number, offset?: number): Promise<GeoDBCountry[]>;
+  searchCountryPlaces(countryCode: string, limit?: number): Promise<GeoDBCity[]>;
   getCityDetails(cityId: string): Promise<GeoDBCity | null>;
 }
 
@@ -77,6 +99,7 @@ export interface OpenTripMapPlace {
   xid: string;
   name: string;
   kinds?: string;
+  kind?: string;
   dist?: number;
   rate?: number;
   point?: {
@@ -86,6 +109,12 @@ export interface OpenTripMapPlace {
   preview?: {
     source?: string;
   };
+}
+
+export interface OpenTripMapSearchOptions {
+  destinationName: string;
+  destinationType?: DestinationType;
+  limit?: number;
 }
 
 // ── Media Types ──

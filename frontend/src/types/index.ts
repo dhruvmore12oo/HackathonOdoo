@@ -387,6 +387,8 @@ export interface SearchCityResult {
   country: string;
   countryCode: string;
   region?: string;
+  type?: string;
+  destinationType?: 'city' | 'region' | 'country' | 'place';
   latitude: number;
   longitude: number;
   population?: number;

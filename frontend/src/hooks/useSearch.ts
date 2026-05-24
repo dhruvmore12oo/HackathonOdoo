@@ -54,6 +54,7 @@ export function useCityPlaces(city?: SearchCityResult | null) {
       const params = new URLSearchParams({
         name: city!.name,
         country: city!.country,
+        type: city!.destinationType || city!.type || 'city',
         lat: String(city!.latitude),
         lng: String(city!.longitude),
       });

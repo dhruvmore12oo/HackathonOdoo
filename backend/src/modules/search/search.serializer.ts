@@ -1,6 +1,13 @@
 import type { SearchCityResult, TrendingCity, GeoDBCity, CachedCity } from './search.types';
 import { FALLBACK_HERO_IMAGE, FALLBACK_THUMBNAIL_IMAGE } from './search.constants';
 
+function getDestinationType(type?: string): SearchCityResult['destinationType'] {
+  if (type === 'COUNTRY') return 'country';
+  if (type === 'ADM1' || type === 'ADM2' || type === 'REGION') return 'region';
+  if (type === 'CITY') return 'city';
+  return 'place';
+}
+
 /**
  * Serialize a GeoDB city + image data into the API response shape.
  */
@@ -15,6 +22,8 @@ export function serializeGeoDBCity(
     country: city.country,
     countryCode: city.countryCode,
     region: city.region || undefined,
+    type: city.type,
+    destinationType: getDestinationType(city.type),
     latitude: city.latitude,
     longitude: city.longitude,
     population: city.population || undefined,
@@ -33,6 +42,8 @@ export function serializeCachedCity(row: CachedCity): SearchCityResult {
     country: row.country,
     countryCode: row.country_code,
     region: row.region || undefined,
+    type: 'CITY',
+    destinationType: 'city',
     latitude: row.latitude,
     longitude: row.longitude,
     population: row.population || undefined,
